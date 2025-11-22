@@ -24,7 +24,8 @@ app.use((req, res, next) => {
 });
 
 // Connexion à MongoDB
-const dbURL = 'mongodb://127.0.0.1:27017/hopital';
+const dbURL = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hopital';
+
 mongoose.connect(dbURL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ Connexion MongoDB réussie'))
   .catch(err => console.error('❌ Erreur MongoDB:', err));
