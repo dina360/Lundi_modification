@@ -1,3 +1,4 @@
+// backend/models/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -7,10 +8,10 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [true, 'L\'email est requis'],
+    required: [true, "L'email est requis"],
     unique: true,
-    lowercase: true, // Conversion en minuscules
-    trim: true       // Suppression des espaces
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
@@ -18,8 +19,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'medecin', 'infirmier'], // Valeurs autorisées
-    default: 'medecin'                        // Valeur par défaut
+    enum: ['admin', 'medecin', 'secretaire'],   // ⬅️ infirmier → secretaire
+    default: 'medecin'
   }
 }, { timestamps: true });
 

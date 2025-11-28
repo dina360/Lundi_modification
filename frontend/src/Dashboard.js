@@ -1,177 +1,484 @@
 // src/Dashboard.js
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Bar } from 'react-chartjs-2';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Bar, Line, Doughnut } from "react-chartjs-2";
 import {
   Chart,
   CategoryScale,
   LinearScale,
   BarElement,
-  Title,
+  LineElement,
+  PointElement,
+  ArcElement,
   Tooltip,
-  Legend
-} from 'chart.js';
-import { useNavigate } from 'react-router-dom';
+  Legend,
+  Filler
+} from "chart.js";
 
-Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+import "./Dashboard.css";
+import "./Home.css";       // layout + sidebar
+import Sidebar from "./Sidebar";
+
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const Dashboard = () => {
-  const [totalPatients, setTotalPatients] = useState(0);
-  const [todayAppointments, setTodayAppointments] = useState([]);
-  const [chartData, setChartData] = useState(null);
+  const [globalStats, setGlobalStats] = useState({});
+  const [patientsPerMonth, setPatientsPerMonth] = useState([]);
+  const [rdvWeek, setRdvWeek] = useState([]);
+  const [medecinsActivity, setMedecinsActivity] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: { color: '#6B7280' }
-      },
-      title: { 
-        display: true, 
-        text: 'Nouveaux patients par mois',
-        color: '#111827',
-        font: { size: 18 }
-      }
-    },
-    scales: {
-      x: {
-        grid: { color: '#F3F4F6' },
-        ticks: { color: '#6B7280' }
-      },
-      y: {
-        grid: { color: '#F3F4F6' },
-        ticks: { color: '#6B7280' }
-      }
-    }
-  };
+  const token = localStorage.getItem("authToken");
+
+  // état pour ouvrir/fermer le sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, totalRes, appointmentsRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/dashboard/stats'),
-          axios.get('http://localhost:5000/api/dashboard/total'),
-          axios.get('http://localhost:5000/api/dashboard/appointments-today')
+        setLoading(true);
+        const [global, monthly, weekly, medActivity, recent] = await Promise.all([
+          axios.get("http://localhost:5000/api/dashboard/advanced/global-stats", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get("http://localhost:5000/api/dashboard/advanced/patients-per-month", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get("http://localhost:5000/api/dashboard/advanced/rdv-week", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get("http://localhost:5000/api/dashboard/advanced/medecins-activity", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get("http://localhost:5000/api/dashboard/advanced/recent-activities", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
         ]);
 
-        setChartData({
-          labels: statsRes.data.labels,
-          datasets: [{
-            label: 'Nouveaux patients',
-            data: statsRes.data.values,
-            backgroundColor: 'rgba(79, 70, 229, 0.5)',
-          }]
-        });
+        setGlobalStats(global.data);
+        setPatientsPerMonth(monthly.data);
+        setRdvWeek(weekly.data);
+        setMedecinsActivity(medActivity.data);
+        setRecentActivities(recent.data);
 
-        setTotalPatients(totalRes.data.total);
-        setTodayAppointments(appointmentsRes.data.appointments);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors du chargement des données:", error);
+      } catch (err) {
+        console.error("Erreur dashboard avancé:", err);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [token]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-indigo-600">
-          Chargement en cours...
+      <div className="dashboard-loading">
+        <div className="loading-container">
+          <div className="medical-spinner">
+            <div className="pulse-animation"></div>
+          </div>
+          <h3>Chargement des données médicales</h3>
+          <p>Initialisation du tableau de bord...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <button 
-          onClick={() => navigate(-1)}
-          className="mb-8 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-          </svg>
-          Retour
-        </button>
+    <div className="admin-layout">
+      {/* 🔹 Sidebar réutilisable */}
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        active="dashboard"
+      />
 
-        <h2 className="text-4xl font-bold text-gray-900 mb-8">Tableau de bord médical</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-white to-indigo-50 p-6 rounded-2xl shadow-xl border border-indigo-50 transition-transform duration-200 hover:scale-105">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">Patients totaux</h3>
-                <p className="text-5xl font-bold text-indigo-600">{totalPatients}</p>
+      {/* 🔹 Contenu principal qui se décale selon l’état du sidebar */}
+      <div className={`main-content ${sidebarOpen ? "content-shifted" : ""}`}>
+        <div className="medical-dashboard">
+          {/* HEADER */}
+          <header className="dashboard-header">
+            <div className="header-main">
+              <div className="header-title">
+                <h1>Tableau de Bord Médical</h1>
+                <p>Centre Hospitalier NeoHealth - Vue d'ensemble en temps réel</p>
               </div>
-              <div className="bg-indigo-100 p-4 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                </svg>
+              <div className="header-info">
+                <div className="time-display">
+                  {new Date().toLocaleDateString("fr-FR", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+                <div className="status-indicator">
+                  <span className="status-dot"></span>
+                  Système en ligne
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white p-8 rounded-2xl shadow-xl">
-            <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-              </svg>
-              Rendez-vous aujourd'hui
-            </h3>
-            {todayAppointments.length > 0 ? (
-              <ul className="space-y-4">
-                {todayAppointments.map((appointment, index) => (
-                  <li 
-                    key={index} 
-                    className="group flex justify-between items-center p-4 bg-gray-50 rounded-xl transition-all duration-200 hover:bg-indigo-50 cursor-pointer border-l-4 border-indigo-200 hover:border-indigo-400"
-                  >
-                    <div>
-                      <span className="font-semibold text-gray-800 group-hover:text-indigo-700">{appointment.patient}</span>
-                      <span className="block text-sm text-gray-500 group-hover:text-indigo-500">{appointment.type}</span>
-                    </div>
-                    <span className="text-gray-600 group-hover:text-indigo-600">
-                      {new Date(appointment.date).toLocaleTimeString('fr-FR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-400 italic">Aucun rendez-vous prévu aujourd'hui</p>
+          {/* KPI CARDS */}
+          <section className="kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon patient-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div className="kpi-trend positive">+12.5%</div>
               </div>
-            )}
-          </div>
+              <div className="kpi-content">
+                <div className="kpi-value">{globalStats.totalPatients ?? 0}</div>
+                <div className="kpi-label">Patients enregistrés</div>
+              </div>
+              <div className="kpi-footer">
+                <span className="kpi-detail">Mise à jour: Maintenant</span>
+              </div>
+            </div>
 
-          <div className="bg-white p-8 rounded-2xl shadow-xl">
-            <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-              </svg>
-              Statistiques des patients
-            </h3>
-            <div className="h-96">
-              {chartData ? (
-                <Bar data={chartData} options={chartOptions} />
-              ) : (
-                <div className="animate-pulse flex space-x-4">
-                  <div className="flex-1 space-y-4 py-1">
-                    <div className="h-64 bg-gray-100 rounded"></div>
+            <div className="kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon doctor-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 11.5v5M9.5 14h5M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
+                <div className="kpi-trend neutral">±0%</div>
+              </div>
+              <div className="kpi-content">
+                <div className="kpi-value">{globalStats.totalMedecins ?? 0}</div>
+                <div className="kpi-label">Médecins actifs</div>
+              </div>
+              <div className="kpi-footer">
+                <span className="kpi-detail">Taux d'occupation: 78%</span>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon appointment-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </div>
+                <div className="kpi-trend positive">+8.2%</div>
+              </div>
+              <div className="kpi-content">
+                <div className="kpi-value">{globalStats.appointmentsToday ?? 0}</div>
+                <div className="kpi-label">Rendez-vous aujourd'hui</div>
+              </div>
+              <div className="kpi-footer">
+                <span className="kpi-detail">Prochain RDV: 08:30</span>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon staff-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div className="kpi-trend positive">+3.1%</div>
+              </div>
+              <div className="kpi-content">
+                <div className="kpi-value">{globalStats.totalSecretaires ?? 0}</div>
+                <div className="kpi-label">Personnel administratif</div>
+              </div>
+              <div className="kpi-footer">
+                <span className="kpi-detail">Disponibilité: 92%</span>
+              </div>
+            </div>
+          </section>
+
+          {/* MAIN DASHBOARD GRID */}
+          <div className="dashboard-grid">
+            {/* LEFT COLUMN - ANALYTICS */}
+            <div className="analytics-column">
+              {/* Patients Growth Chart */}
+              <div className="analytics-card">
+                <div className="card-header">
+                  <h3>Évolution des Admissions Patients</h3>
+                  <div className="card-actions">
+                    <button className="btn-period active">Mensuel</button>
+                    <button className="btn-period">Trimestriel</button>
+                    <button className="btn-period">Annuel</button>
                   </div>
                 </div>
-              )}
+                <div className="chart-wrapper">
+                  <Line
+                    data={{
+                      labels: [
+                        "Jan",
+                        "Fév",
+                        "Mar",
+                        "Avr",
+                        "Mai",
+                        "Jun",
+                        "Jul",
+                        "Août",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Déc",
+                      ],
+                      datasets: [
+                        {
+                          label: "Nouveaux patients",
+                          data: patientsPerMonth,
+                          borderColor: "#2563eb",
+                          backgroundColor: "rgba(37, 99, 235, 0.1)",
+                          borderWidth: 3,
+                          tension: 0.4,
+                          fill: true,
+                          pointBackgroundColor: "#2563eb",
+                          pointBorderColor: "#ffffff",
+                          pointBorderWidth: 2,
+                          pointRadius: 4,
+                          pointHoverRadius: 6,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          backgroundColor: "#1e293b",
+                          titleColor: "#f8fafc",
+                          bodyColor: "#f8fafc",
+                          borderColor: "#334155",
+                          borderWidth: 1,
+                          cornerRadius: 8,
+                        },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: "rgba(226, 232, 240, 0.5)",
+                            drawBorder: false,
+                          },
+                          ticks: {
+                            color: "#64748b",
+                          },
+                        },
+                        x: {
+                          grid: { display: false },
+                          ticks: {
+                            color: "#64748b",
+                          },
+                        },
+                      },
+                      interaction: {
+                        intersect: false,
+                        mode: "index",
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Doctors Performance */}
+              <div className="analytics-card">
+                <div className="card-header">
+                  <h3>Performance des Médecins</h3>
+                  <div className="card-subtitle">Consultations réalisées</div>
+                </div>
+                <div className="chart-wrapper">
+                  {medecinsActivity.length > 0 ? (
+                    <Bar
+                      data={{
+                        labels: medecinsActivity.map((m) => m.name),
+                        datasets: [
+                          {
+                            label: "Consultations",
+                            data: medecinsActivity.map((m) => m.totalConsultations),
+                            backgroundColor: "rgba(139, 92, 246, 0.8)",
+                            borderRadius: 6,
+                            borderSkipped: false,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            backgroundColor: "#1e293b",
+                            titleColor: "#f8fafc",
+                            bodyColor: "#f8fafc",
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            grid: {
+                              color: "rgba(226, 232, 240, 0.5)",
+                              drawBorder: false,
+                            },
+                            ticks: {
+                              color: "#64748b",
+                            },
+                          },
+                          x: {
+                            grid: { display: false },
+                            ticks: {
+                              color: "#64748b",
+                              maxRotation: 45,
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <div className="empty-state">
+                      <div className="empty-icon">📊</div>
+                      <p>Aucune donnée d'activité disponible</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN - ACTIVITIES */}
+            <div className="activities-column">
+              {/* Weekly Overview */}
+              <div className="analytics-card">
+                <div className="card-header">
+                  <h3>Activité Hebdomadaire</h3>
+                  <div className="card-subtitle">Semaine en cours</div>
+                </div>
+                <div className="mini-charts">
+                  <div className="mini-chart-container">
+                    <div className="mini-chart-header">
+                      <span>Rendez-vous par jour</span>
+                    </div>
+                    <div className="chart-wrapper-small">
+                      <Bar
+                        data={{
+                          labels: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+                          datasets: [
+                            {
+                              data: rdvWeek,
+                              backgroundColor: "rgba(16, 185, 129, 0.8)",
+                              borderRadius: 4,
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { display: false } },
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="mini-chart-container">
+                    <div className="mini-chart-header">
+                      <span>Répartition du personnel</span>
+                    </div>
+                    <div className="chart-wrapper-small">
+                      <Doughnut
+                        data={{
+                          labels: ["Médecins", "Secrétaires"],
+                          datasets: [
+                            {
+                              data: [
+                                globalStats.totalMedecins || 0,
+                                globalStats.totalSecretaires || 0,
+                              ],
+                              backgroundColor: ["#2563eb", "#8b5cf6"],
+                              borderWidth: 3,
+                              borderColor: "#ffffff",
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: "bottom",
+                              labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                              },
+                            },
+                          },
+                          cutout: "65%",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Patient Activity */}
+              <div className="analytics-card">
+                <div className="card-header">
+                  <h3>Activité Patients Récente</h3>
+                  <div className="card-subtitle">Dernières 24 heures</div>
+                </div>
+                <div className="activity-feed">
+                  {recentActivities.length > 0 ? (
+                    recentActivities.map((patient) => (
+                      <div key={patient._id} className="activity-item">
+                        <div className="activity-indicator"></div>
+                        <div className="activity-avatar">
+                          {patient.name?.charAt(0).toUpperCase() || "P"}
+                        </div>
+                        <div className="activity-content">
+                          <div className="activity-title">
+                            {patient.name || "Patient anonyme"}
+                          </div>
+                          <div className="activity-description">
+                            Dossier mis à jour
+                          </div>
+                        </div>
+                        <div className="activity-time">
+                          {new Date(patient.updatedAt).toLocaleTimeString("fr-FR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-state">
+                      <div className="empty-icon">👥</div>
+                      <p>Aucune activité récente</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 🔻 Partie Alertes supprimée comme demandé */}
             </div>
           </div>
         </div>

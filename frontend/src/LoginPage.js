@@ -21,12 +21,22 @@ function LoginPage() {
 
     try {
       const response = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password
-      });
+  email,
+  password
+});
 
-      localStorage.setItem('authToken', response.data.token);
-      navigate('/home');
+// ⬅️ on stocke aussi le rôle & nom
+localStorage.setItem('authToken', response.data.token);
+localStorage.setItem('userRole', response.data.user.role);
+localStorage.setItem('userName', response.data.user.name);
+
+const role = response.data.user.role;
+
+if (role === "admin" || role === "medecin" || role === "secretaire") {
+    navigate("/home");  // interface staff
+} else {
+    navigate("/homePatient");  // interface patient
+}
       
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur de connexion au serveur');

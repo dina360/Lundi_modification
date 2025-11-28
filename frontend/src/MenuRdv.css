@@ -1,0 +1,80 @@
+.rdv-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* --- SIDEBAR --- */
+
+.rdv-sidebar {
+  width: 240px;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.sidebar-header {
+  text-align: center;
+}
+
+.sidebar-logo {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+}
+
+.sidebar-nav {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-btn {
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #eef2ff;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.2s;
+}
+
+.nav-btn:hover {
+  background: #c7d2fe;
+}
+
+.nav-btn.active {
+  background: #6366f1;
+  color: white;
+}
+
+/* LOGOUT BUTTON */
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: #fee2e2;
+  color: #b91c1c;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.logout-btn:hover {
+  background: #fecaca;
+}
+
+/* --- MAIN CONTENT --- */
+
+.rdv-main {
+  flex: 1;
+  padding: 30px;
+}

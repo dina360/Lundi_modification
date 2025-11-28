@@ -1,31 +1,32 @@
 // src/Home.js
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AddPatientModal from './AddPatientModal';
 import EditPatientModal from './EditPatientModal';
 import { FiHome, FiUsers, FiCalendar, FiUserPlus, FiSearch, FiLogOut } from 'react-icons/fi';
 import "./Home.css";
-// Import du logo
 import logo from './assets/neohealth-logo.jpg';
 
 function Home() {
-  // États
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  // Navigation
+
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Récupération des patients
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/patients');
+        const token = localStorage.getItem('authToken');
+        const response = await axios.get('http://localhost:5000/api/patients', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setPatients(response.data);
       } catch (error) {
         console.error('Erreur lors de la récupération des patients:', error);
@@ -34,7 +35,6 @@ function Home() {
     fetchPatients();
   }, []);
 
-  // Handlers
   const handleSearch = (e) => setSearch(e.target.value);
 
   const filteredPatients = patients.filter(patient =>
@@ -44,7 +44,10 @@ function Home() {
 
   const addPatient = async (newPatient) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/patients', newPatient);
+      const token = localStorage.getItem('authToken');
+      const response = await axios.post('http://localhost:5000/api/patients', newPatient, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setPatients([...patients, response.data]);
     } catch (error) {
       console.error("Erreur lors de l'ajout:", error);
@@ -53,9 +56,11 @@ function Home() {
 
   const editPatient = async (updatedPatient) => {
     try {
+      const token = localStorage.getItem('authToken');
       const response = await axios.put(
         `http://localhost:5000/api/patients/${updatedPatient._id}`,
-        updatedPatient
+        updatedPatient,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setPatients(patients.map(p => p._id === updatedPatient._id ? response.data : p));
     } catch (error) {
@@ -66,7 +71,10 @@ function Home() {
   const handleDelete = async (_id) => {
     if (window.confirm('Confirmer suppression ?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/patients/${_id}`);
+        const token = localStorage.getItem('authToken');
+        await axios.delete(`http://localhost:5000/api/patients/${_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setPatients(patients.filter(p => p._id !== _id));
       } catch (error) {
         console.error('Erreur suppression:', error);
@@ -78,8 +86,13 @@ function Home() {
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
     navigate('/login');
   };
+
+  // Pour gérer la classe active du menu
+  const isActive = (path) => location.pathname === path;
 
   return (
     <div className="admin-layout">
@@ -108,34 +121,46 @@ function Home() {
         <nav className="sidebar-nav">
           <div className="nav-section">
             <h3 className="nav-section-title">GÉNÉRAL</h3>
-            <a href="#" className="nav-item active">
+
+            <button
+              className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
+              onClick={() => navigate('/dashboard')}
+            >
               <FiHome className="nav-icon" />
               <span>Tableau de Bord</span>
-            </a>
-            <a href="#" className="nav-item">
+            </button>
+
+            <button
+              className={`nav-item ${isActive('/home') ? 'active' : ''}`}
+              onClick={() => navigate('/home')}
+            >
               <FiUsers className="nav-icon" />
               <span>Gestion Patients</span>
-            </a>
-            <a href="#" className="nav-item">
+            </button>
+
+            <button
+              className={`nav-item ${isActive('/rendezvous') ? 'active' : ''}`}
+              onClick={() => navigate('/rendezvous')}
+            >
               <FiCalendar className="nav-icon" />
               <span>Rendez-vous</span>
-            </a>
+            </button>
           </div>
 
           <div className="nav-section">
             <h3 className="nav-section-title">ADMINISTRATION</h3>
-            <a href="#" className="nav-item">
+            <button className="nav-item" onClick={() => navigate('/personnel')}>
               <FiUsers className="nav-icon" />
               <span>Personnel Médical</span>
-            </a>
-            <a href="#" className="nav-item">
+            </button>
+            <button className="nav-item" onClick={() => navigate('/docteurs')}>
               <FiUsers className="nav-icon" />
               <span>Médecins</span>
-            </a>
-            <a href="#" className="nav-item">
+            </button>
+            <button className="nav-item" onClick={() => navigate('/salles')}>
               <FiUsers className="nav-icon" />
               <span>Salles & Blocs</span>
-            </a>
+            </button>
           </div>
         </nav>
 
@@ -188,84 +213,81 @@ function Home() {
           </div>
         </header>
 
-        {/* Patients Grid */}
-        <div className="patients-grid">
-          {filteredPatients.map((patient) => (
-            <div key={patient._id} className="patient-card">
-              <div className="patient-header">
-                <div className="patient-info">
-                  <h3 className="patient-name">{patient.name}</h3>
-                  <p className="patient-dossier">Dossier #{patient.dossier}</p>
-                </div>
-                <div className="patient-actions">
-                  <button
-                    onClick={() => handleViewDossier(patient._id)}
-                    className="action-btn view-btn"
-                    title="Voir dossier"
-                  >
-                    👁️
-                  </button>
-                  <button
-                    onClick={() => { setSelectedPatient(patient); setIsEditModalOpen(true); }}
-                    className="action-btn edit-btn"
-                    title="Modifier"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(patient._id)}
-                    className="action-btn delete-btn"
-                    title="Supprimer"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-
-              <div className="patient-details">
-                <div className="detail-item">
-                  <span className="detail-label">📞 Téléphone</span>
-                  <span className="detail-value">{patient.phone}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">📍 Adresse</span>
-                  <span className="detail-value">{patient.address}</span>
-                </div>
-                
-                <div className="appointments-grid">
-                  <div className="appointment-card">
-                    <span className="appointment-label">Dernier RDV</span>
-                    <span className="appointment-date past">
-                      {patient.lastAppointment ? 
-                        new Date(patient.lastAppointment).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="appointment-card">
-                    <span className="appointment-label">Prochain RDV</span>
-                    <span className="appointment-date future">
-                      {patient.nextAppointment ? 
-                        new Date(patient.nextAppointment).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="patient-status">
-                <span className={`status-badge ${patient.nextAppointment ? 'active' : 'inactive'}`}>
-                  {patient.nextAppointment ? 'Suivi en cours' : 'En attente'}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredPatients.length === 0 && (
+        {/* ✅ Liste des patients (tableau) */}
+        {filteredPatients.length > 0 ? (
+          <div className="patients-table-wrapper">
+            <table className="patients-table">
+              <thead>
+                <tr>
+                  <th>Dossier</th>
+                  <th>Nom</th>
+                  <th>Téléphone</th>
+                  <th>Adresse</th>
+                  <th>Dernier RDV</th>
+                  <th>Prochain RDV</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPatients.map((patient) => (
+                  <tr key={patient._id}>
+                    <td>#{patient.dossier}</td>
+                    <td>{patient.name}</td>
+                    <td>{patient.phone}</td>
+                    <td>{patient.address}</td>
+                    <td>
+                      {patient.lastAppointment
+                        ? new Date(patient.lastAppointment).toLocaleDateString()
+                        : 'N/A'}
+                    </td>
+                    <td>
+                      {patient.nextAppointment
+                        ? new Date(patient.nextAppointment).toLocaleDateString()
+                        : 'N/A'}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${patient.nextAppointment ? 'active' : 'inactive'}`}>
+                        {patient.nextAppointment ? 'Suivi en cours' : 'En attente'}
+                      </span>
+                    </td>
+                    <td className="actions-cell">
+                      <button
+                        onClick={() => handleViewDossier(patient._id)}
+                        className="action-btn view-btn"
+                        title="Voir dossier"
+                      >
+                        👁️
+                      </button>
+                      <button
+                        onClick={() => { setSelectedPatient(patient); setIsEditModalOpen(true); }}
+                        className="action-btn edit-btn"
+                        title="Modifier"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleDelete(patient._id)}
+                        className="action-btn delete-btn"
+                        title="Supprimer"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          // Empty state
           <div className="empty-state">
             <div className="empty-icon">👥</div>
             <h3>Aucun patient trouvé</h3>
             <p>
-              {search ? 'Aucun patient ne correspond à votre recherche.' : 'Commencez par ajouter votre premier patient.'}
+              {search
+                ? 'Aucun patient ne correspond à votre recherche.'
+                : 'Commencez par ajouter votre premier patient.'}
             </p>
             <button
               onClick={() => setIsAddModalOpen(true)}

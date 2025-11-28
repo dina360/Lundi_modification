@@ -1,9 +1,9 @@
+// frontend/src/RegisterPage.js
 import axios from 'axios';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiUser, FiMail, FiLock, FiArrowRight, FiShield, FiBriefcase, FiStar, FiAward } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiArrowRight, FiShield } from 'react-icons/fi';
 
-// Import des images
 import logo from './assets/neohealth-logo.jpg';
 import medicalImage from './assets/hero2.jpg';
 
@@ -11,7 +11,6 @@ function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [specialty, setSpecialty] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -22,13 +21,22 @@ function RegisterPage() {
     setError('');
 
     try {
+      // 🚨 Inscription patient UNIQUEMENT
       const response = await axios.post(
         'http://localhost:5000/api/auth/register',
-        { name: fullName, email, password, specialty }
+        { 
+          name: fullName, 
+          email, 
+          password,
+          role: "patient" // forcé côté backend aussi
+        }
       );
 
+      // Pas besoin de token ici (patient simple), mais si tu veux :
       localStorage.setItem('authToken', response.data.token);
-      navigate('/home');
+
+      // Redirection vers interface patient
+      navigate('/homePatient');
 
     } catch (err) {
       const serverError = err.response?.data?.message;
@@ -40,22 +48,24 @@ function RegisterPage() {
 
   return (
     <div className="split-auth-page">
-      {/* Côté gauche - Formulaire */}
+
+      {/* Côté gauche */}
       <div className="split-form-side">
         <div className="split-form-container">
+
           {/* Logo */}
           <div className="split-logo">
             <img src={logo} alt="NeoHealth Logo" className="split-logo-img" />
             <h1>Clinique NeoHealth</h1>
           </div>
 
-          {/* En-tête */}
+          {/* Titre */}
           <div className="split-header">
-            <h2>Join Our Team</h2>
-            <p>Create your professional account</p>
+            <h2>Create Your Account</h2>
+            <p>Patient Registration</p>
           </div>
 
-          {/* Message d'erreur */}
+          {/* Erreur */}
           {error && (
             <div className="split-error-message">
               <FiShield className="error-icon" />
@@ -65,6 +75,7 @@ function RegisterPage() {
 
           {/* Formulaire */}
           <form onSubmit={handleRegister} className="split-form">
+
             <div className="split-form-group">
               <label className="split-form-label">
                 <FiUser className="icon" />
@@ -75,45 +86,22 @@ function RegisterPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="split-form-input"
-                placeholder="Dr. Jean Dupont"
+                placeholder="Ex: Sarah Johnson"
                 required
               />
             </div>
 
             <div className="split-form-group">
               <label className="split-form-label">
-                <FiBriefcase className="icon" />
-                Specialty
-              </label>
-              <select
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
-                className="split-form-input"
-                required
-              >
-                <option value="">Select your specialty</option>
-                <option value="medecin_generaliste">General Practitioner</option>
-                <option value="cardiologue">Cardiologist</option>
-                <option value="pediatre">Pediatrician</option>
-                <option value="chirurgien">Surgeon</option>
-                <option value="radiologue">Radiologist</option>
-                <option value="infirmier">Nurse</option>
-                <option value="administratif">Administrative Staff</option>
-                <option value="technicien">Medical Technician</option>
-              </select>
-            </div>
-
-            <div className="split-form-group">
-              <label className="split-form-label">
                 <FiMail className="icon" />
-                Professional Email
+                Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="split-form-input"
-                placeholder="your.email@clinique.com"
+                placeholder="example@mail.com"
                 required
               />
             </div>
@@ -128,7 +116,7 @@ function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="split-form-input"
-                placeholder="Minimum 8 characters"
+                placeholder="Minimum 6 characters"
                 required
                 minLength="6"
               />
@@ -145,7 +133,7 @@ function RegisterPage() {
             </button>
           </form>
 
-          {/* Lien de connexion */}
+          {/* Lien login */}
           <div className="split-auth-footer">
             <p>
               Already have an account?{' '}
@@ -155,37 +143,24 @@ function RegisterPage() {
             </p>
           </div>
 
-          {/* Features list */}
-          <div className="split-features">
-            <div className="split-feature-item">
-              <FiAward className="feature-icon" />
-              <span>Professional Certification</span>
-            </div>
-            <div className="split-feature-item">
-              <span>Advanced Medical Tools</span>
-            </div>
-            <div className="split-feature-item">
-              <FiShield className="feature-icon" />
-              <span>HIPAA Compliant</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Côté droit - Image */}
+      {/* Côté image */}
       <div className="split-image-side">
-        <div 
+        <div
           className="split-image-container"
           style={{ backgroundImage: `url(${medicalImage})` }}
         >
           <div className="split-image-overlay">
             <div className="split-image-content">
-              <h3>Join Medical Excellence</h3>
-              <p>Become part of our innovative healthcare community</p>
+              <h3>Welcome to NeoHealth</h3>
+              <p>Your secure medical space</p>
             </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }

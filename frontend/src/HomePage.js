@@ -75,26 +75,30 @@ function HomePage() {
         </p>
 
         <div className="services-grid">
-          <div className="service-card">
-            <h3>🧬 Consultations & Analyses</h3>
-            <p>Des spécialistes à votre écoute, avec un suivi médical précis.</p>
-          </div>
-          <div className="service-card">
-            <h3>💊 Gestion des Patients</h3>
-            <p>
-              Visualisez et gérez vos dossiers médicaux, ordonnances et
-              historiques de soins.
-            </p>
-          </div>
-          <div className="service-card">
-            <h3>📅 Prise de Rendez-vous</h3>
-            <p>Planifiez facilement vos rendez-vous avec nos docteurs.</p>
-          </div>
-          <div className="service-card">
-            <h3>🩺 Suivi à Distance</h3>
-            <p>Surveillez votre santé via notre plateforme intelligente.</p>
-          </div>
-        </div>
+
+  <div className="service-card">
+    <h3>🧬 Consultations & Analyses</h3>
+    <p>Des spécialistes à votre écoute, avec un suivi médical précis.</p>
+  </div>
+
+  {/* ⬇️ BOUTON REDIRIGE VERS /patients */}
+  <div className="service-card" onClick={() => navigate("/patients")}>
+    <h3>💊 Gestion des Patients</h3>
+    <p>Visualisez et gérez vos dossiers médicaux, ordonnances et historiques de soins.</p>
+    <button className="btn-access">Voir les Patients</button>
+  </div>
+
+  <div className="service-card">
+    <h3>📅 Prise de Rendez-vous</h3>
+    <p>Planifiez facilement vos rendez-vous avec nos docteurs.</p>
+  </div>
+
+  <div className="service-card">
+    <h3>🩺 Suivi à Distance</h3>
+    <p>Surveillez votre santé via notre plateforme intelligente.</p>
+  </div>
+
+</div>
       </section>
 
       {/* SECTION ACCÈS */}
