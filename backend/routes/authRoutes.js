@@ -148,12 +148,13 @@ router.post('/login', async (req, res) => {
       message: 'Connexion réussie.',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        specialty: user.specialty,
-      },
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      specialty: user.specialty,
+      photo: user.photo, // ✅ Ajoute cette ligne
+    },
     });
   } catch (error) {
     console.error('Erreur login:', error);

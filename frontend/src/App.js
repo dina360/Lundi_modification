@@ -12,20 +12,20 @@ import RendezVousPage from "./RendezVousPage";
 import DossierPatient from "./DossierPatient";
 
 import ProtectedRoute from "./ProtectedRoute";
-import "./App.css";
+
+import MedecinLayout from "./medecin/MedecinLayout";
+import MedecinDashboard from "./medecin/MedecinDashboard";
+import MedecinProfile from "./medecin/MedecinProfile";
+import MedecinPatientsList from "./medecin/MedecinPatientsList";
+import AddConsultation from "./medecin/AddConsultation";
+import SelectPatientForConsultation from "./medecin/SelectPatientForConsultation";
+import ManageAppointments from "./medecin/ManageAppointments";
 
 // Petites pages placeholder pour chaque rôle
 const PatientHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Patient</h1>
     <p>Bienvenue sur votre espace patient (en cours de développement).</p>
-  </div>
-);
-
-const MedecinHome = () => (
-  <div style={{ padding: "2rem" }}>
-    <h1>Espace Médecin</h1>
-    <p>Tableau de bord médecin (vous pourrez y ajouter les fonctionnalités).</p>
   </div>
 );
 
@@ -36,18 +36,23 @@ const SecretaireHome = () => (
   </div>
 );
 
-function AppContent() {
+// const ManageAppointments = () => (
+//   <div style={{ padding: "2rem" }}>
+//     <h1>Gérer les Rendez-vous</h1>
+//     <p>Interface pour gérer les rendez-vous (à implémenter).</p>
+//   </div>
+// );
+
+function App() {
   return (
     <div className="app-container">
       <Routes>
-        {/* Landing page publique */}
+        {/* Pages publiques */}
         <Route path="/" element={<HomePage />} />
-
-        {/* Auth publique */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* 🔹 ADMIN UNIQUEMENT */}
+        {/* 🔹 ADMIN */}
         <Route
           path="/dashboard"
           element={
@@ -56,7 +61,6 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/patients"
           element={
@@ -65,7 +69,6 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/patients/:patientId/dossier"
           element={
@@ -74,8 +77,6 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-
-        {/* 🔹 RENDEZ-VOUS : admin + médecin + secrétaire */}
         <Route
           path="/rendezvous"
           element={
@@ -85,22 +86,29 @@ function AppContent() {
           }
         />
 
+        {/* 🔹 ESPACE MÉDECIN avec layout */}
+        <Route
+          path="/medecin/*"
+          element={
+            <ProtectedRoute roles={["medecin"]}>
+              <MedecinLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="home" element={<MedecinDashboard />} />
+          <Route path="profile" element={<MedecinProfile />} />
+          <Route path="patients" element={<MedecinPatientsList />} />
+          <Route path="PatientDetails" element={<SelectPatientForConsultation/>} />
+          <Route path="patients/:patientId/ajouter-consultation" element={<AddConsultation />} />
+          <Route path="manage-appointments" element={<ManageAppointments />} />
+        </Route>
+
         {/* 🔹 ESPACE PATIENT */}
         <Route
           path="/patient/home"
           element={
             <ProtectedRoute roles={["patient"]}>
               <PatientHome />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* 🔹 ESPACE MÉDECIN */}
-        <Route
-          path="/medecin/home"
-          element={
-            <ProtectedRoute roles={["medecin"]}>
-              <MedecinHome />
             </ProtectedRoute>
           }
         />
@@ -115,7 +123,7 @@ function AppContent() {
           }
         />
 
-        {/* Tu peux garder ou adapter ces routes plus tard */}
+        {/* Routes admin “à venir” */}
         <Route
           path="/personnel"
           element={
@@ -151,4 +159,4 @@ function AppContent() {
   );
 }
 
-export default AppContent;
+export default App;

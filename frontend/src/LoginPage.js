@@ -18,10 +18,11 @@ function LoginPage() {
   // extrait de LoginPage.js
 
 // LoginPage.js (seulement la fonction handleLogin à remplacer)
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setError('');
+// LoginPage.js (remplace la fonction handleLogin)
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
   try {
     const res = await axios.post('http://localhost:5000/api/auth/login', {
@@ -29,35 +30,63 @@ const handleLogin = async (e) => {
       password,
     });
 
-    const { token, user } = res.data;
+    // LoginPage.js (dans la fonction handleLogin, ligne 33)
+  const { token, user } = res.data;
 
-    // 🔐 On garde le token + le rôle en local
+  console.log("Données utilisateur reçues après login:", user); // 🔍 Ajoute cette ligne
+
+  // Sauvegarde du token + rôle
+  localStorage.setItem('authToken', token);
+  localStorage.setItem('userRole', user.role);
+
+  if (user.role === 'medecin') {
+    localStorage.setItem('medecin', JSON.stringify(user)); // ← C'est ici que l'objet est sauvegardé
+    navigate('/medecin/home');
+    return;
+  }
+    console.log("Données reçues du backend après login:", { token, user }); // 🔍 Ajoute cette ligne
+
+    // 🔐 Sauvegarde du token + rôle
     localStorage.setItem('authToken', token);
     localStorage.setItem('userRole', user.role);
 
-    // 🔀 Redirection selon le rôle
+    // 🎯 Si le user est médecin → on sauvegarde ses infos pour le dashboard
+    if (user.role === 'medecin') {
+      console.log("Sauvegarde du médecin dans localStorage:", user); // 🔍 Ajoute cette ligne
+      localStorage.setItem('medecin', JSON.stringify(user));
+      navigate('/medecin/home');
+      return;
+    }
+
+    // 🎯 Admin
     if (user.role === 'admin') {
       navigate('/dashboard');
-    } else if (user.role === 'medecin') {
-      navigate('/medecin/home');
-    } else if (user.role === 'secretaire') {
-      navigate('/secretaire/home');
-    } else if (user.role === 'patient') {
-      navigate('/patient/home');
-    } else {
-      // fallback au cas où
-      navigate('/');
+      return;
     }
+
+    // 🎯 Secrétaire
+    if (user.role === 'secretaire') {
+      navigate('/secretaire/home');
+      return;
+    }
+
+    // 🎯 Patient
+    if (user.role === 'patient') {
+      navigate('/patient/home');
+      return;
+    }
+
+    // Fallback
+    navigate('/');
 
   } catch (err) {
     const serverError = err.response?.data?.message;
     setError(serverError || "Identifiants invalides");
+    console.error("Erreur login:", err); // 🔍 Ajoute cette ligne
   } finally {
     setIsLoading(false);
   }
 };
-
-
 
   return (
     <div className="split-auth-page">

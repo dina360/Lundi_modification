@@ -10,10 +10,16 @@ function DossierPatient() {
   const [error, setError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(null);
 
+  // 🔹 Récupérer le token dans localStorage
+  const token = localStorage.getItem("authToken");
+
   useEffect(() => {
     const fetchPatientDetails = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/patients/${patientId}`);
+        // 🔥 Ajouter le token dans l'en-tête
+        const response = await axios.get(`http://localhost:5000/api/patients/${patientId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setPatient(response.data);
         setDocuments(response.data.medicalRecords || []);
       } catch (err) {
@@ -22,7 +28,7 @@ function DossierPatient() {
       }
     };
     fetchPatientDetails();
-  }, [patientId]);
+  }, [patientId, token]); // 🔹 Ajouter `token` dans les dépendances
 
   const handleFileChange = (e) => {
     if (e.target.files?.[0]) {
@@ -42,10 +48,16 @@ function DossierPatient() {
     formData.append('document', selectedFile);
 
     try {
+      // 🔥 Ajouter le token dans l'en-tête
       const response = await axios.post(
         `http://localhost:5000/api/patients/${patientId}/dossier`,
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}` // ✅ Ajout du token
+          }
+        }
       );
 
       if (response.data?.document) {
@@ -61,8 +73,10 @@ function DossierPatient() {
   const handleDeleteDocument = async (docUrl) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/patients/${patientId}/dossier`, { 
-          data: { document: docUrl } 
+        // 🔥 Ajouter le token dans l'en-tête
+        await axios.delete(`http://localhost:5000/api/patients/${patientId}/dossier`, {
+          headers: { Authorization: `Bearer ${token}` }, // ✅ Ajout du token
+          data: { document: docUrl }
         });
         setDocuments(documents.filter(doc => doc.url !== docUrl));
       } catch (err) {
