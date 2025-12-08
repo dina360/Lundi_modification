@@ -1,4 +1,3 @@
-// src/FormulaireRendezVous.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -7,17 +6,20 @@ import {
   FiCalendar,
   FiFileText,
   FiPlus,
+  FiCheck,
+  FiAlertCircle,
+  FiLoader
 } from "react-icons/fi";
-import "./RV.css";
 
 function FormulaireRendezVous({ selectedDate, onSuccess }) {
   const [patients, setPatients] = useState([]);
   const [medecins, setMedecins] = useState([]);
   const [patient, setPatient] = useState("");
   const [medecin, setMedecin] = useState("");
-  const [heure, setHeure] = useState("");
+  const [heure, setHeure] = useState("09:00");
   const [motif, setMotif] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("authToken");
@@ -30,7 +32,7 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
           axios.get("http://localhost:5000/api/patients", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/auth/users?role=medecin", {
+          axios.get("http://localhost:5000/api/medecins", {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -51,6 +53,7 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!selectedDate) {
       setError("Veuillez d'abord sélectionner une date sur le calendrier.");
@@ -84,14 +87,17 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
         }
       );
 
-      console.log("RDV créé:", res.data);
-
-      setHeure("");
+      setSuccess("Rendez-vous créé avec succès !");
+      setHeure("09:00");
       setMotif("");
       setPatient("");
       setMedecin("");
 
-      if (onSuccess) onSuccess();
+      setTimeout(() => {
+        setSuccess("");
+        if (onSuccess) onSuccess();
+      }, 3000);
+
     } catch (err) {
       console.error("Erreur création RDV:", err.response?.data || err);
       setError(
@@ -104,31 +110,54 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
   };
 
   return (
-    <div className="rdv-form">
-      <form onSubmit={handleSubmit} className="modern-form">
-        {error && (
-          <div className="form-error">
-            <FiUser className="error-icon" />
-            <span>{error}</span>
-          </div>
-        )}
+    <div id="formulaire-rdv" className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="p-3 bg-blue-100 rounded-xl">
+          <FiPlus className="text-2xl text-blue-900" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-900">Nouveau Rendez-vous</h3>
+          <p className="text-gray-600">Planifier une consultation</p>
+        </div>
+      </div>
 
-        <div className="form-grid">
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div className="flex items-center">
+            <FiAlertCircle className="text-red-500 mr-3" />
+            <span className="text-red-700 font-medium">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <div className="flex items-center">
+            <FiCheck className="text-green-500 mr-3" />
+            <span className="text-green-700 font-medium">{success}</span>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* PATIENT */}
-          <div className="form-group">
-            <label className="form-label">
-              <FiUser className="label-icon" />
-              Patient
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="flex items-center">
+                <FiUser className="mr-2 text-blue-900" />
+                Patient
+              </div>
             </label>
             <select
               value={patient}
               onChange={(e) => setPatient(e.target.value)}
               required
-              className="form-select"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300"
               disabled={loading}
             >
               <option value="">Sélectionner un patient</option>
-              {(patients || [])
+              {patients
                 .filter((p) => p && p._id && p.name)
                 .map((p) => (
                   <option key={p._id} value={p._id}>
@@ -139,20 +168,22 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
           </div>
 
           {/* MÉDECIN */}
-          <div className="form-group">
-            <label className="form-label">
-              <FiUser className="label-icon" />
-              Médecin
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="flex items-center">
+                <FiUser className="mr-2 text-blue-900" />
+                Médecin
+              </div>
             </label>
             <select
               value={medecin}
               onChange={(e) => setMedecin(e.target.value)}
               required
-              className="form-select"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300"
               disabled={loading}
             >
               <option value="">Sélectionner un médecin</option>
-              {(medecins || [])
+              {medecins
                 .filter((m) => m && m._id && m.name)
                 .map((m) => (
                   <option key={m._id} value={m._id}>
@@ -163,12 +194,14 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
           </div>
 
           {/* DATE */}
-          <div className="form-group">
-            <label className="form-label">
-              <FiCalendar className="label-icon" />
-              Date sélectionnée
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="flex items-center">
+                <FiCalendar className="mr-2 text-blue-900" />
+                Date sélectionnée
+              </div>
             </label>
-            <div className="date-display">
+            <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl font-medium text-blue-900">
               {selectedDate
                 ? selectedDate.toLocaleDateString("fr-FR", {
                     weekday: "long",
@@ -181,45 +214,62 @@ function FormulaireRendezVous({ selectedDate, onSuccess }) {
           </div>
 
           {/* HEURE */}
-          <div className="form-group">
-            <label className="form-label">
-              <FiClock className="label-icon" />
-              Heure
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="flex items-center">
+                <FiClock className="mr-2 text-blue-900" />
+                Heure
+              </div>
             </label>
             <input
               type="time"
               value={heure}
               onChange={(e) => setHeure(e.target.value)}
               required
-              className="form-input"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300"
               disabled={loading}
             />
           </div>
         </div>
 
         {/* MOTIF */}
-        <div className="form-group full-width">
-          <label className="form-label">
-            <FiFileText className="label-icon" />
-            Motif (optionnel)
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="flex items-center">
+              <FiFileText className="mr-2 text-blue-900" />
+              Motif de la consultation
+            </div>
           </label>
           <textarea
             rows={3}
             value={motif}
             onChange={(e) => setMotif(e.target.value)}
-            placeholder="Ex : Consultation de contrôle, douleur thoracique, etc."
-            className="form-textarea"
+            placeholder="Ex : Consultation de contrôle, douleur thoracique, bilan annuel..."
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300"
             disabled={loading}
           />
         </div>
 
         <button
           type="submit"
-          className={`submit-btn ${loading ? "loading" : ""}`}
           disabled={loading}
+          className={`w-full py-4 rounded-xl font-bold transition-all duration-300 flex items-center justify-center space-x-3 ${
+            loading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 hover:shadow-2xl"
+          }`}
         >
-          <FiPlus className="btn-icon" />
-          {loading ? "Création en cours..." : "Enregistrer le rendez-vous"}
+          {loading ? (
+            <>
+              <FiLoader className="animate-spin text-xl" />
+              <span>Création en cours...</span>
+            </>
+          ) : (
+            <>
+              <FiPlus className="text-xl" />
+              <span>Planifier le rendez-vous</span>
+            </>
+          )}
         </button>
       </form>
     </div>

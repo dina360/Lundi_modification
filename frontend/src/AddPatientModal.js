@@ -1,4 +1,4 @@
-import axios from 'axios';
+// src/AddPatientModal.js
 import React, { useState } from 'react';
 import { FiUser, FiFileText, FiPhone, FiHome, FiCamera, FiX } from 'react-icons/fi';
 
@@ -13,26 +13,24 @@ function AddPatientModal({ onClose, onAddPatient }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePhotoChange = (e) => {
-    setFormData({ ...formData, photo: e.target.files[0] });
+    setFormData((prev) => ({ ...prev, photo: e.target.files[0] }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const formPayload = new FormData();
-    
     Object.entries(formData).forEach(([key, value]) => {
       if (value) formPayload.append(key, value);
     });
 
     try {
-      const response = await axios.post("http://localhost:5000/api/patients", formPayload, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      onAddPatient(response.data);
+      // 👉 C’est le parent qui fait l’appel axios
+      await onAddPatient(formPayload);
       onClose();
     } catch (error) {
       console.error("Erreur lors de l'ajout du patient", error);

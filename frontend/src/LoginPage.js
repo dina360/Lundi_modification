@@ -15,78 +15,50 @@ function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // extrait de LoginPage.js
-
-// LoginPage.js (seulement la fonction handleLogin à remplacer)
-// LoginPage.js (remplace la fonction handleLogin)
+  // 🔹 Fonction de login
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-  try {
-    const res = await axios.post('http://localhost:5000/api/auth/login', {
-      email,
-      password,
-    });
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
+        email,
+        password,
+      });
 
-    // LoginPage.js (dans la fonction handleLogin, ligne 33)
-  const { token, user } = res.data;
+      const { token, user } = res.data;
 
-  console.log("Données utilisateur reçues après login:", user); // 🔍 Ajoute cette ligne
+      // 🔐 Sauvegarde du token et des infos utilisateur
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userName', user.name || '');
+      localStorage.setItem('userEmail', user.email || '');
 
-  // Sauvegarde du token + rôle
-  localStorage.setItem('authToken', token);
-  localStorage.setItem('userRole', user.role);
+      // 🔹 Si médecin, on stocke ses infos complètes
+      if (user.role === 'medecin') {
+        localStorage.setItem('medecin', JSON.stringify(user));
+      }
 
-  if (user.role === 'medecin') {
-    localStorage.setItem('medecin', JSON.stringify(user)); // ← C'est ici que l'objet est sauvegardé
-    navigate('/medecin/home');
-    return;
-  }
-    console.log("Données reçues du backend après login:", { token, user }); // 🔍 Ajoute cette ligne
+      // 🔹 Redirections selon rôle
+      const roleRoutes = {
+        medecin: '/medecin/home',
+        admin: '/dashboard',
+        secretaire: '/secretaire/home',
+        patient: '/patient/home',
+      };
 
-    // 🔐 Sauvegarde du token + rôle
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('userRole', user.role);
+      const route = roleRoutes[user.role] || '/';
+      navigate(route);
 
-    // 🎯 Si le user est médecin → on sauvegarde ses infos pour le dashboard
-    if (user.role === 'medecin') {
-      console.log("Sauvegarde du médecin dans localStorage:", user); // 🔍 Ajoute cette ligne
-      localStorage.setItem('medecin', JSON.stringify(user));
-      navigate('/medecin/home');
-      return;
+    } catch (err) {
+      const serverError = err.response?.data?.message;
+      setError(serverError || 'Identifiants invalides');
+      console.error('Erreur login:', err);
+    } finally {
+      setIsLoading(false);
     }
-
-    // 🎯 Admin
-    if (user.role === 'admin') {
-      navigate('/dashboard');
-      return;
-    }
-
-    // 🎯 Secrétaire
-    if (user.role === 'secretaire') {
-      navigate('/secretaire/home');
-      return;
-    }
-
-    // 🎯 Patient
-    if (user.role === 'patient') {
-      navigate('/patient/home');
-      return;
-    }
-
-    // Fallback
-    navigate('/');
-
-  } catch (err) {
-    const serverError = err.response?.data?.message;
-    setError(serverError || "Identifiants invalides");
-    console.error("Erreur login:", err); // 🔍 Ajoute cette ligne
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <div className="split-auth-page">

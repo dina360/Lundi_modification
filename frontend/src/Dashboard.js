@@ -14,9 +14,21 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import {
+  FiUsers,
+  FiUserPlus,
+  FiCalendar,
+  FiBriefcase,
+  FiActivity,
+  FiTrendingUp,
+  FiClock,
+  FiEye,
+  FiChevronRight,
+  FiBarChart2,
+  FiPieChart,
+  FiGlobe,
+} from "react-icons/fi";
 
-import "./Dashboard.css";
-import "./Home.css";
 import Sidebar from "./Sidebar";
 
 Chart.register(
@@ -96,21 +108,19 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-container">
-          <div className="medical-spinner">
-            <div className="pulse-animation"></div>
-          </div>
-          <h3>Chargement des données médicales</h3>
-          <p>Initialisation du tableau de bord...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-900 mx-auto mb-6"></div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">
+            Chargement des données médicales
+          </h3>
+          <p className="text-gray-600">Initialisation du tableau de bord...</p>
         </div>
       </div>
     );
   }
 
-  // 🔐 Sécuriser les données pour les graphiques
-
-  // Patients / mois → toujours un tableau de 12 valeurs
+  // Sécuriser les données pour les graphiques
   const monthlyPatientsData = Array.isArray(patientsPerMonth)
     ? [...patientsPerMonth]
     : [];
@@ -118,16 +128,40 @@ const Dashboard = () => {
     monthlyPatientsData.push(0);
   }
 
-  // RDV par jour (Lun → Dim) → tableau de 7 valeurs
   const rdvWeekData = Array.isArray(rdvWeek) ? [...rdvWeek] : [];
   while (rdvWeekData.length < 7) {
     rdvWeekData.push(0);
   }
 
-  // Activité médecins : filtrer les entrées nulles/incomplètes
   const safeMedecins = Array.isArray(medecinsActivity)
     ? medecinsActivity.filter((m) => m && m.name)
     : [];
+
+  // 📊 KPI calculées à partir des vraies données
+  const totalPatients = globalStats.totalPatients || 0;
+  const totalMedecins = globalStats.totalMedecins || 0;
+  const totalSecretaires = globalStats.totalSecretaires || 0;
+  const totalStaff = totalMedecins + totalSecretaires;
+
+  const todayAppointments = globalStats.appointmentsToday || 0;
+  const rdvThisWeek = rdvWeekData.reduce(
+    (sum, v) => sum + (typeof v === "number" ? v : 0),
+    0
+  );
+
+  const now = new Date();
+  const currentMonthIndex = now.getMonth(); // 0–11
+  const patientsThisMonth = monthlyPatientsData[currentMonthIndex] || 0;
+  const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
+  const patientsPrevMonth = monthlyPatientsData[prevMonthIndex] || 0;
+
+  let patientsGrowth = null;
+  if (patientsPrevMonth > 0) {
+    patientsGrowth = (
+      ((patientsThisMonth - patientsPrevMonth) / patientsPrevMonth) *
+      100
+    ).toFixed(1);
+  }
 
   const medecinsBarData = {
     labels: safeMedecins.map((m) => m.name),
@@ -135,7 +169,7 @@ const Dashboard = () => {
       {
         label: "Consultations",
         data: safeMedecins.map((m) => m.totalConsultations || 0),
-        backgroundColor: "rgba(139, 92, 246, 0.8)",
+        backgroundColor: "rgba(30, 64, 175, 0.8)",
         borderRadius: 6,
         borderSkipped: false,
       },
@@ -143,26 +177,39 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="admin-layout">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         active="dashboard"
       />
 
-      {/* Contenu */}
-      <div className={`main-content ${sidebarOpen ? "content-shifted" : ""}`}>
-        <div className="medical-dashboard">
-          {/* HEADER */}
-          <header className="dashboard-header">
-            <div className="header-main">
-              <div className="header-title">
-                <h1>Tableau de Bord Médical</h1>
-                <p>Centre Hospitalier NeoHealth - Vue d'ensemble en temps réel</p>
+      <div
+        className={`transition-all duration-300 min-h-screen ${
+          sidebarOpen ? "ml-72" : "ml-20"
+        }`}
+      >
+        {/* Header */}
+        <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
+                  <FiActivity className="text-2xl text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">
+                    Tableau de Bord Administrateur
+                  </h1>
+                  <p className="text-blue-100 mt-2 text-lg">
+                    Vue d&apos;ensemble de l&apos;activité de NeoHealth
+                  </p>
+                </div>
               </div>
-              <div className="header-info">
-                <div className="time-display">
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right mr-6">
+                <div className="text-blue-200 text-sm">
                   {new Date().toLocaleDateString("fr-FR", {
                     weekday: "long",
                     year: "numeric",
@@ -170,119 +217,130 @@ const Dashboard = () => {
                     day: "numeric",
                   })}
                 </div>
-                <div className="status-indicator">
-                  <span className="status-dot"></span>
+                <div className="text-white font-semibold flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                   Système en ligne
                 </div>
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          {/* KPI CARDS */}
-          <section className="kpi-grid">
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <div className="kpi-icon patient-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
+        {/* KPI Cards */}
+        <div className="max-w-7xl mx-auto px-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Patients Card */}
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 hover:shadow-2xl transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-blue-100 rounded-xl">
+                  <FiUsers className="text-2xl text-blue-900" />
                 </div>
-                <div className="kpi-trend positive">+12.5%</div>
+                {patientsGrowth !== null ? (
+                  <span className="flex items-center text-green-600 font-bold text-sm">
+                    <FiTrendingUp className="mr-1" /> {patientsGrowth}% ce mois
+                  </span>
+                ) : (
+                  <span className="text-gray-500 text-xs">
+                    Suivi démarré ce mois
+                  </span>
+                )}
               </div>
-              <div className="kpi-content">
-                <div className="kpi-value">
-                  {globalStats.totalPatients ?? 0}
+              <div className="mb-2">
+                <div className="text-3xl font-bold text-gray-900">
+                  {totalPatients}
                 </div>
-                <div className="kpi-label">Patients enregistrés</div>
+                <div className="text-gray-600 font-medium">
+                  Patients enregistrés
+                </div>
               </div>
-              <div className="kpi-footer">
-                <span className="kpi-detail">Mise à jour: Maintenant</span>
+              <div className="text-sm text-gray-500">
+                Nouveaux ce mois :{" "}
+                <span className="font-semibold">{patientsThisMonth}</span>
               </div>
             </div>
 
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <div className="kpi-icon doctor-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 11.5v5M9.5 14h5M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+            {/* Médecins Card */}
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 hover:shadow-2xl transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-purple-100 rounded-xl">
+                  <FiBriefcase className="text-2xl text-purple-900" />
                 </div>
-                <div className="kpi-trend neutral">±0%</div>
               </div>
-              <div className="kpi-content">
-                <div className="kpi-value">
-                  {globalStats.totalMedecins ?? 0}
+              <div className="mb-2">
+                <div className="text-3xl font-bold text-gray-900">
+                  {totalMedecins}
                 </div>
-                <div className="kpi-label">Médecins actifs</div>
+                <div className="text-gray-600 font-medium">Médecins actifs</div>
               </div>
-              <div className="kpi-footer">
-                <span className="kpi-detail">Taux d'occupation: 78%</span>
+              <div className="text-sm text-gray-500">
+                Inclut tous les comptes avec le rôle « médecin »
               </div>
             </div>
 
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <div className="kpi-icon appointment-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
+            {/* RDV Card */}
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 hover:shadow-2xl transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-green-100 rounded-xl">
+                  <FiCalendar className="text-2xl text-green-900" />
                 </div>
-                <div className="kpi-trend positive">+8.2%</div>
               </div>
-              <div className="kpi-content">
-                <div className="kpi-value">
-                  {globalStats.appointmentsToday ?? 0}
+              <div className="mb-2">
+                <div className="text-3xl font-bold text-gray-900">
+                  {todayAppointments}
                 </div>
-                <div className="kpi-label">Rendez-vous aujourd'hui</div>
+                <div className="text-gray-600 font-medium">
+                  Rendez-vous aujourd&apos;hui
+                </div>
               </div>
-              <div className="kpi-footer">
-                <span className="kpi-detail">Prochain RDV: 08:30</span>
+              <div className="text-sm text-gray-500">
+                Sur la semaine :{" "}
+                <span className="font-semibold">{rdvThisWeek}</span> RDV planifiés
               </div>
             </div>
 
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <div className="kpi-icon staff-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
+            {/* Personnel Card */}
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 hover:shadow-2xl transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-orange-100 rounded-xl">
+                  <FiUserPlus className="text-2xl text-orange-900" />
                 </div>
-                <div className="kpi-trend positive">+3.1%</div>
               </div>
-              <div className="kpi-content">
-                <div className="kpi-value">
-                  {globalStats.totalSecretaires ?? 0}
+              <div className="mb-2">
+                <div className="text-3xl font-bold text-gray-900">
+                  {totalStaff}
                 </div>
-                <div className="kpi-label">Personnel administratif</div>
+                <div className="text-gray-600 font-medium">
+                  Personnel médical & administratif
+                </div>
               </div>
-              <div className="kpi-footer">
-                <span className="kpi-detail">Disponibilité: 92%</span>
+              <div className="text-sm text-gray-500">
+                Médecins :{" "}
+                <span className="font-semibold">{totalMedecins}</span> ·
+                Secrétaires :{" "}
+                <span className="font-semibold">{totalSecretaires}</span>
               </div>
             </div>
-          </section>
+          </div>
+        </div>
 
-          {/* MAIN GRID */}
-          <div className="dashboard-grid">
-            {/* LEFT COLUMN */}
-            <div className="analytics-column">
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Charts */}
+            <div className="space-y-8">
               {/* Évolution Patients */}
-              <div className="analytics-card">
-                <div className="card-header">
-                  <h3>Évolution des Admissions Patients</h3>
-                  <div className="card-actions">
-                    <button className="btn-period active">Mensuel</button>
-                    <button className="btn-period">Trimestriel</button>
-                    <button className="btn-period">Annuel</button>
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Admissions Patients
+                    </h3>
+                    <p className="text-gray-600">
+                      Nouveaux patients par mois (année courante)
+                    </p>
                   </div>
                 </div>
-                <div className="chart-wrapper">
+                <div className="h-80">
                   <Line
                     data={{
                       labels: [
@@ -303,12 +361,12 @@ const Dashboard = () => {
                         {
                           label: "Nouveaux patients",
                           data: monthlyPatientsData,
-                          borderColor: "#2563eb",
-                          backgroundColor: "rgba(37, 99, 235, 0.1)",
+                          borderColor: "#1e40af",
+                          backgroundColor: "rgba(30, 64, 175, 0.1)",
                           borderWidth: 3,
                           tension: 0.4,
                           fill: true,
-                          pointBackgroundColor: "#2563eb",
+                          pointBackgroundColor: "#1e40af",
                           pointBorderColor: "#ffffff",
                           pointBorderWidth: 2,
                           pointRadius: 4,
@@ -333,10 +391,7 @@ const Dashboard = () => {
                       scales: {
                         y: {
                           beginAtZero: true,
-                          grid: {
-                            color: "rgba(226, 232, 240, 0.5)",
-                            drawBorder: false,
-                          },
+                          grid: { color: "rgba(226, 232, 240, 0.5)" },
                           ticks: { color: "#64748b" },
                         },
                         x: {
@@ -344,19 +399,25 @@ const Dashboard = () => {
                           ticks: { color: "#64748b" },
                         },
                       },
-                      interaction: { intersect: false, mode: "index" },
                     }}
                   />
                 </div>
               </div>
 
-              {/* Performance des Médecins */}
-              <div className="analytics-card">
-                <div className="card-header">
-                  <h3>Performance des Médecins</h3>
-                  <div className="card-subtitle">Consultations réalisées</div>
+              {/* Performance Médecins */}
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Activité estimée des Médecins
+                    </h3>
+                    <p className="text-gray-600">
+                      Volume de consultations (valeurs simulées pour le moment)
+                    </p>
+                  </div>
+                  <FiBarChart2 className="text-2xl text-blue-900" />
                 </div>
-                <div className="chart-wrapper">
+                <div className="h-80">
                   {safeMedecins.length > 0 ? (
                     <Bar
                       data={medecinsBarData}
@@ -374,10 +435,7 @@ const Dashboard = () => {
                         scales: {
                           y: {
                             beginAtZero: true,
-                            grid: {
-                              color: "rgba(226, 232, 240, 0.5)",
-                              drawBorder: false,
-                            },
+                            grid: { color: "rgba(226, 232, 240, 0.5)" },
                             ticks: { color: "#64748b" },
                           },
                           x: {
@@ -391,32 +449,52 @@ const Dashboard = () => {
                       }}
                     />
                   ) : (
-                    <div className="empty-state">
-                      <div className="empty-icon">📊</div>
-                      <p>Aucune donnée d'activité disponible</p>
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                      <FiBarChart2 className="text-5xl mb-4" />
+                      <p className="text-lg font-medium">
+                        Aucune donnée d&apos;activité disponible
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="activities-column">
+            {/* Right Column - Activities */}
+            <div className="space-y-8">
               {/* Activité Hebdomadaire */}
-              <div className="analytics-card">
-                <div className="card-header">
-                  <h3>Activité Hebdomadaire</h3>
-                  <div className="card-subtitle">Semaine en cours</div>
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Activité Hebdomadaire
+                    </h3>
+                    <p className="text-gray-600">Répartition des RDV</p>
+                  </div>
+                  <FiCalendar className="text-2xl text-blue-900" />
                 </div>
-                <div className="mini-charts">
-                  <div className="mini-chart-container">
-                    <div className="mini-chart-header">
-                      <span>Rendez-vous par jour</span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* RDV par jour */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-gray-800">
+                        Rendez-vous par jour
+                      </h4>
+                      <FiEye className="text-gray-500" />
                     </div>
-                    <div className="chart-wrapper-small">
+                    <div className="h-48">
                       <Bar
                         data={{
-                          labels: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+                          labels: [
+                            "Lun",
+                            "Mar",
+                            "Mer",
+                            "Jeu",
+                            "Ven",
+                            "Sam",
+                            "Dim",
+                          ],
                           datasets: [
                             {
                               data: rdvWeekData,
@@ -429,25 +507,31 @@ const Dashboard = () => {
                           responsive: true,
                           maintainAspectRatio: false,
                           plugins: { legend: { display: false } },
+                          scales: {
+                            y: { display: false },
+                            x: { grid: { display: false } },
+                          },
                         }}
                       />
                     </div>
                   </div>
-                  <div className="mini-chart-container">
-                    <div className="mini-chart-header">
-                      <span>Répartition du personnel</span>
+
+                  {/* Répartition personnel */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-gray-800">
+                        Répartition du personnel
+                      </h4>
+                      <FiPieChart className="text-gray-500" />
                     </div>
-                    <div className="chart-wrapper-small">
+                    <div className="h-48">
                       <Doughnut
                         data={{
                           labels: ["Médecins", "Secrétaires"],
                           datasets: [
                             {
-                              data: [
-                                globalStats.totalMedecins || 0,
-                                globalStats.totalSecretaires || 0,
-                              ],
-                              backgroundColor: ["#2563eb", "#8b5cf6"],
+                              data: [totalMedecins, totalSecretaires],
+                              backgroundColor: ["#1e40af", "#7c3aed"],
                               borderWidth: 3,
                               borderColor: "#ffffff",
                             },
@@ -459,7 +543,7 @@ const Dashboard = () => {
                           plugins: {
                             legend: {
                               position: "bottom",
-                              labels: { padding: 15, usePointStyle: true },
+                              labels: { padding: 15 },
                             },
                           },
                           cutout: "65%",
@@ -470,53 +554,80 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Activité Patients Récente */}
-              <div className="analytics-card">
-                <div className="card-header">
-                  <h3>Activité Patients Récente</h3>
-                  <div className="card-subtitle">Dernières 24 heures</div>
+              {/* Activité Récente */}
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Activité Patients Récente
+                    </h3>
+                    <p className="text-gray-600">
+                      Dernières mises à jour de dossiers
+                    </p>
+                  </div>
+                  <FiClock className="text-2xl text-blue-900" />
                 </div>
-                <div className="activity-feed">
+
+                <div className="space-y-4">
                   {recentActivities.length > 0 ? (
-                    recentActivities.map((patient) => (
-                      <div key={patient._id} className="activity-item">
-                        <div className="activity-indicator"></div>
-                        <div className="activity-avatar">
-                          {patient.name
-                            ? patient.name.charAt(0).toUpperCase()
-                            : "P"}
-                        </div>
-                        <div className="activity-content">
-                          <div className="activity-title">
-                            {patient.name || "Patient anonyme"}
-                          </div>
-                          <div className="activity-description">
-                            Dossier mis à jour
+                    recentActivities.slice(0, 5).map((patient, index) => (
+                      <div
+                        key={patient._id || index}
+                        className="flex items-center p-4 hover:bg-blue-50 rounded-xl transition-colors duration-200 group"
+                      >
+                        <div className="flex-shrink-0 mr-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-900 font-bold text-lg border-2 border-white shadow-lg">
+                            {patient.name
+                              ? patient.name.charAt(0).toUpperCase()
+                              : "P"}
                           </div>
                         </div>
-                        <div className="activity-time">
-                          {patient.updatedAt
-                            ? new Date(patient.updatedAt).toLocaleTimeString(
-                                "fr-FR",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )
-                            : "--:--"}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-gray-900">
+                              {patient.name || "Patient anonyme"}
+                            </h4>
+                            <span className="text-sm text-gray-500">
+                              {patient.updatedAt
+                                ? new Date(
+                                    patient.updatedAt
+                                  ).toLocaleTimeString("fr-FR", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "--:--"}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm mt-1">
+                            Dossier médical mis à jour
+                          </p>
                         </div>
+                        <FiChevronRight className="text-gray-400 group-hover:text-blue-900 ml-4" />
                       </div>
                     ))
                   ) : (
-                    <div className="empty-state">
-                      <div className="empty-icon">👥</div>
-                      <p>Aucune activité récente</p>
+                    <div className="text-center py-8 text-gray-500">
+                      <FiGlobe className="text-5xl mx-auto mb-4" />
+                      <p className="text-lg font-medium">
+                        Aucune activité récente
+                      </p>
+                      <p className="text-sm mt-2">
+                        Les dernières modifications de dossiers apparaîtront
+                        ici.
+                      </p>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Partie alertes supprimée comme demandé */}
+                {recentActivities.length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <button className="w-full py-3 bg-blue-50 text-blue-900 font-medium rounded-xl hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center">
+                      Voir toutes les activités
+                      <FiChevronRight className="ml-2" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

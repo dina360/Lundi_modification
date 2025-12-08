@@ -1,161 +1,124 @@
-// src/RendezVousPage.js
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  FiHome,
-  FiUsers,
-  FiCalendar,
-  FiLogOut,
-  FiChevronLeft,
-  FiChevronRight,
-  FiMenu,
-} from "react-icons/fi";
-
+import { FiCalendar, FiClock, FiUsers, FiBarChart2 } from "react-icons/fi";
 import CalendrierRendezVous from "./CalendrierRendezVous";
 import FormulaireRendezVous from "./FormulaireRendezVous";
 import ListeRendezVous from "./ListeRendezVous";
-
-import logo from "./assets/neohealth-logo.jpg";
-import "./Home.css";
-import "./RendezVous.css";
+import Sidebar from "./Sidebar";
 
 function RendezVousPage() {
-  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [refresh, setRefresh] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    navigate("/login");
+  const todayStats = {
+    total: 8,
+    completed: 5,
+    upcoming: 3,
+    cancelled: 0
   };
 
   return (
-    <div className="admin-layout">
-      {/* SIDEBAR */}
-      <div
-        className={`sidebar ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
-      >
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <img src={logo} alt="NeoHealth Logo" className="logo-img" />
-            {sidebarOpen && (
-              <div className="logo-text">
-                <h2>NeoHealth</h2>
-                <p>Medical Suite</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        active="rendezvous"
+      />
+
+      <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"}`}>
+        {/* Header */}
+        <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
+                  <FiCalendar className="text-2xl text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">Gestion des Rendez-vous</h1>
+                  <p className="text-blue-100 mt-2 text-lg">
+                    Planification intelligente avec suivi en temps réel
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-          <button
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <FiChevronLeft /> : <FiChevronRight />}
-          </button>
-        </div>
-
-        <nav className="sidebar-nav">
-          <div className="nav-section">
-            {sidebarOpen && <h3 className="nav-section-title">GÉNÉRAL</h3>}
-
-            <button className="nav-item" onClick={() => navigate("/dashboard")}>
-              <FiHome className="nav-icon" />
-              {sidebarOpen && <span>Tableau de Bord</span>}
-            </button>
-
-            <button className="nav-item" onClick={() => navigate("/patients")}>
-              <FiUsers className="nav-icon" />
-              {sidebarOpen && <span>Gestion Patients</span>}
-            </button>
-
-            <button
-              className="nav-item active"
-              onClick={() => navigate("/rendezvous")}
-            >
-              <FiCalendar className="nav-icon" />
-              {sidebarOpen && <span>Rendez-vous</span>}
-            </button>
+            </div>
+            <div className="flex items-center space-x-6">
+              <div className="text-right">
+                <div className="text-blue-200 text-sm">Hôpital NeoHealth</div>
+                <div className="text-white font-semibold">Service de Planification</div>
+              </div>
+            </div>
           </div>
 
-          <div className="nav-section">
-            {sidebarOpen && (
-              <h3 className="nav-section-title">ADMINISTRATION</h3>
-            )}
-
-            <button
-              className="nav-item"
-              onClick={() => navigate("/personnel")}
-            >
-              <FiUsers className="nav-icon" />
-              {sidebarOpen && <span>Personnel Médical</span>}
-            </button>
-
-            <button
-              className="nav-item"
-              onClick={() => navigate("/docteurs")}
-            >
-              <FiUsers className="nav-icon" />
-              {sidebarOpen && <span>Médecins</span>}
-            </button>
-
-            <button className="nav-item" onClick={() => navigate("/salles")}>
-              <FiUsers className="nav-icon" />
-              {sidebarOpen && <span>Salles & Blocs</span>}
-            </button>
-          </div>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button className="logout-btn" onClick={handleLogout}>
-            <FiLogOut className="nav-icon" />
-            {sidebarOpen && <span>Déconnexion</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* CONTENU PRINCIPAL */}
-      <div className={`main-content ${sidebarOpen ? "content-shifted" : ""}`}>
-        <header className="content-header">
-          <button
-            className="mobile-menu-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <FiMenu />
-          </button>
-          <div className="header-actions">
-            <h1>Gestion des Rendez-vous</h1>
-            <p className="header-subtitle">
-              Planification intelligente avec prise en compte des week-ends et
-              jours fériés.
-            </p>
+          {/* Stats Today */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-white text-sm opacity-90">Total Aujourd'hui</div>
+                  <div className="text-2xl font-bold text-white">{todayStats.total}</div>
+                </div>
+                <FiCalendar className="text-2xl text-white/70" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-white text-sm opacity-90">Terminés</div>
+                  <div className="text-2xl font-bold text-white">{todayStats.completed}</div>
+                </div>
+                <FiClock className="text-2xl text-white/70" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-white text-sm opacity-90">À venir</div>
+                  <div className="text-2xl font-bold text-white">{todayStats.upcoming}</div>
+                </div>
+                <FiUsers className="text-2xl text-white/70" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-white text-sm opacity-90">Annulés</div>
+                  <div className="text-2xl font-bold text-white">{todayStats.cancelled}</div>
+                </div>
+                <FiBarChart2 className="text-2xl text-white/70" />
+              </div>
+            </div>
           </div>
         </header>
 
-        <div className="rdv-page-grid">
-          {/* Calendrier */}
-          <section className="rdv-calendar-wrapper card">
-            <h2 className="rdv-section-title">Calendrier</h2>
-            <CalendrierRendezVous
-              onDateSelect={setSelectedDate}
-              refresh={refresh}
-            />
-          </section>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            {/* Calendrier - 2 colonnes */}
+            <div className="lg:col-span-2">
+              <CalendrierRendezVous
+                onDateSelect={setSelectedDate}
+                refresh={refresh}
+              />
+            </div>
 
-          {/* Formulaire */}
-          <section className="rdv-form-wrapper card">
-            <h2 className="rdv-section-title">Nouveau rendez-vous</h2>
-            <FormulaireRendezVous
-              selectedDate={selectedDate}
-              onSuccess={() => setRefresh(!refresh)}
-            />
-          </section>
+            {/* Formulaire - 1 colonne */}
+            <div>
+              <FormulaireRendezVous
+                selectedDate={selectedDate}
+                onSuccess={() => {
+                  setRefresh(!refresh);
+                  setSelectedDate(null);
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Liste des RDV */}
+          <div>
+            <ListeRendezVous refresh={refresh} />
+          </div>
         </div>
-
-        {/* Liste des rendez-vous */}
-        <section className="rdv-list-wrapper card">
-          <h2 className="rdv-section-title">Liste des rendez-vous</h2>
-          <ListeRendezVous refresh={refresh} />
-        </section>
       </div>
     </div>
   );
