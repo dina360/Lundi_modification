@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiPhone, FiMapPin, FiFolder, FiSearch } from "react-icons/fi";
+import { FiUser, FiPhone, FiMapPin, FiFolder, FiCalendar, FiSearch, FiX } from "react-icons/fi";
 
 function MedecinPatientsList() {
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [appointmentsModal, setAppointmentsModal] = useState(null); // Pour stocker les RDV d’un patient
+  const [appointments, setAppointments] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const token = localStorage.getItem("authToken");
   const navigate = useNavigate();
@@ -37,6 +40,28 @@ function MedecinPatientsList() {
     patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (patient.phone && patient.phone.includes(searchTerm))
   );
+
+  // Fonction pour charger les RDV d’un patient
+  const loadAppointments = async (patientId) => {
+    setModalLoading(true);
+    try {
+      const res = await axios.get(`http://localhost:5000/api/appointments/patient/${patientId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAppointments(res.data);
+      setAppointmentsModal(patientId);
+    } catch (err) {
+      console.error("Erreur chargement RDV :", err);
+      alert("Erreur lors du chargement des rendez-vous.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const closeAppointmentsModal = () => {
+    setAppointmentsModal(null);
+    setAppointments([]);
+  };
 
   const handleViewDossier = (patientId) => {
     navigate(`/patients/${patientId}/dossier`);
@@ -100,18 +125,69 @@ function MedecinPatientsList() {
                 )}
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col space-y-3">
                 <button
                   onClick={() => handleViewDossier(p._id)}
                   className="w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
                 >
                   <FiFolder className="mr-2" /> Voir Dossier Médical
                 </button>
+
+                {/* Bouton "Voir Rendez-vous" */}
+                <button
+                  onClick={() => loadAppointments(p._id)}
+                  className="w-full flex items-center justify-center  bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                >
+                  <FiCalendar className="mr-2" /> Voir Rendez-vous
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Modal pour afficher les rendez-vous */}
+      {appointmentsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-800">Rendez-vous de {filteredPatients.find(p => p._id === appointmentsModal)?.name}</h3>
+              <button
+                onClick={closeAppointmentsModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className="p-4">
+              {modalLoading ? (
+                <p className="text-center text-gray-500">Chargement des rendez-vous...</p>
+              ) : appointments.length === 0 ? (
+                <p className="text-center text-gray-500">Aucun rendez-vous pour ce patient.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {appointments.map((r) => (
+                    <li key={r._id} className="p-3 border rounded-lg bg-gray-50">
+                      <div className="font-semibold text-gray-800">
+                        {new Date(r.date).toLocaleDateString('fr-FR')} à {new Date(r.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <div className="text-gray-600 text-sm mt-1">
+                        Médecin: {r.medecin.name}
+                      </div>
+                      {r.notes && (
+                        <div className="text-gray-700 text-sm mt-1">
+                          Notes: {r.notes}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
