@@ -1,238 +1,116 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Pour rediriger vers le dossier
+import { FiUser, FiPhone, FiMapPin, FiFolder, FiSearch } from "react-icons/fi";
 
 function MedecinPatientsList() {
   const [patients, setPatients] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [rdvDate, setRdvDate] = useState("");
-  const [rdvTime, setRdvTime] = useState("");
-  const [rdvDuration, setRdvDuration] = useState(30);
-  const [rdvNotes, setRdvNotes] = useState("");
-  const [message, setMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const medecin = JSON.parse(localStorage.getItem("medecin"));
   const token = localStorage.getItem("authToken");
-  const navigate = useNavigate(); // Pour rediriger
+  const navigate = useNavigate();
 
-  const apiPatients = axios.create({
-    baseURL: "http://localhost:5000/api/patients",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const apiRdv = axios.create({
-    baseURL: "http://localhost:5000/api/appointments",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  // ----------------------------------------
   // Charger les patients
-  // ----------------------------------------
   useEffect(() => {
     const loadPatients = async () => {
       try {
-        const res = await apiPatients.get("/");
+        const res = await axios.get("http://localhost:5000/api/patients", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setPatients(res.data);
       } catch (err) {
         console.error("Erreur chargement patients :", err);
+        setError("Impossible de charger la liste des patients.");
+      } finally {
+        setLoading(false);
       }
     };
 
     loadPatients();
-  }, []);
+  }, [token]);
 
-  // ----------------------------------------
-  // Charger tous les RDV
-  // ----------------------------------------
-  useEffect(() => {
-    const loadAppointments = async () => {
-      try {
-        const res = await apiRdv.get("/");
-        setAppointments(res.data);
-      } catch (err) {
-        console.error("Erreur chargement RDV :", err);
-      }
-    };
+  // Filtrer les patients en fonction de la recherche
+  const filteredPatients = patients.filter(patient =>
+    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (patient.phone && patient.phone.includes(searchTerm))
+  );
 
-    loadAppointments();
-  }, []);
-
-  // ----------------------------------------
-  // Créer un RDV
-  // ----------------------------------------
-  const handleCreateRdv = async () => {
-    if (!selectedPatient || !rdvDate || !rdvTime) {
-      setMessage("Veuillez sélectionner un patient et une date/heure.");
-      return;
-    }
-
-    const dateTime = new Date(`${rdvDate}T${rdvTime}`);
-    try {
-      const res = await apiRdv.post("/", {
-        patient: selectedPatient._id,
-        medecin: medecin.id, // Utilise `id` car ton backend renvoie `id`
-        date: dateTime,
-        duration: rdvDuration,
-        notes: rdvNotes,
-      });
-
-      setMessage(`Rendez-vous créé avec succès pour ${selectedPatient.name}`);
-      setAppointments([...appointments, res.data.rdv]);
-
-      // Reset form
-      setSelectedPatient(null);
-      setRdvDate("");
-      setRdvTime("");
-      setRdvDuration(30);
-      setRdvNotes("");
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        err.response?.data?.message || "Erreur lors de la création du rendez-vous."
-      );
-    }
-  };
-
-  // ----------------------------------------
-  // Supprimer un RDV
-  // ----------------------------------------
-  const handleDeleteRdv = async (id) => {
-    try {
-      await apiRdv.delete(`/${id}`);
-      setAppointments(appointments.filter((a) => a._id !== id));
-    } catch (err) {
-      console.error("Erreur suppression RDV :", err);
-    }
-  };
-
-  // ----------------------------------------
-  // Voir le dossier médical
-  // ----------------------------------------
   const handleViewDossier = (patientId) => {
     navigate(`/patients/${patientId}/dossier`);
   };
 
+  if (loading) return <div className="p-6 text-center">Chargement des patients...</div>;
+  if (error) return <div className="p-6 text-red-500 text-center">{error}</div>;
+
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4 text-blue-700">
-        Liste des patients
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold mb-6 text-blue-800 flex items-center">
+        <FiUser className="mr-3" /> Liste des Patients
       </h1>
 
-      {/* ------------------ */}
-      {/* Tableau des patients */}
-      {/* ------------------ */}
-      <table className="min-w-full bg-white shadow rounded mb-8">
-        <thead>
-          <tr className="bg-gray-200 text-left">
-            <th className="p-2 border">Nom</th>
-            <th className="p-2 border">Téléphone</th>
-            <th className="p-2 border">Adresse</th>
-            <th className="p-2 border">Dossier</th>
-            <th className="p-2 border">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {patients.map((p) => (
-            <tr key={p._id} className="border-b hover:bg-gray-50">
-              <td className="p-2">{p.name}</td>
-              <td className="p-2">{p.phone}</td>
-              <td className="p-2">{p.address}</td>
-              <td className="p-2">
-                <button
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
-                  onClick={() => handleViewDossier(p._id)}
-                >
-                  Voir Dossier
-                </button>
-              </td>
-              <td className="p-2">
-                <button
-                  className="bg-green-500 text-white px-3 py-1 rounded"
-                  onClick={() => setSelectedPatient(p)}
-                >
-                  Ajouter RDV
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* ------------------ */}
-      {/* Formulaire ajout RDV */}
-      {/* ------------------ */}
-      {selectedPatient && (
-        <div className="bg-white shadow rounded p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">
-            Ajouter un rendez-vous pour {selectedPatient.name}
-          </h2>
-
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <input
-              type="date"
-              value={rdvDate}
-              onChange={(e) => setRdvDate(e.target.value)}
-              className="border p-2 rounded"
-            />
-            <input
-              type="time"
-              value={rdvTime}
-              onChange={(e) => setRdvTime(e.target.value)}
-              className="border p-2 rounded"
-            />
-            <input
-              type="number"
-              value={rdvDuration}
-              onChange={(e) => setRdvDuration(e.target.value)}
-              className="border p-2 rounded w-24"
-              min={10}
-              max={180}
-            />
-          </div>
-
-          <textarea
-            value={rdvNotes}
-            onChange={(e) => setRdvNotes(e.target.value)}
-            placeholder="Notes / observations"
-            className="border p-2 rounded w-full mb-4"
+      {/* Barre de recherche */}
+      <div className="mb-6 flex items-center">
+        <div className="relative w-full max-w-md">
+          <input
+            type="text"
+            placeholder="Rechercher un patient..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-
-          <button
-            onClick={handleCreateRdv}
-            className="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Créer RDV
-          </button>
-
-          {message && <p className="mt-3 text-red-600">{message}</p>}
+          <FiSearch className="absolute left-3 top-3 text-gray-400" />
         </div>
-      )}
+      </div>
 
-      {/* ------------------ */}
-      {/* Liste RDV existants */}
-      {/* ------------------ */}
-      <div className="bg-white shadow rounded p-6">
-        <h2 className="text-xl font-semibold mb-4">Rendez-vous existants</h2>
-
-        {appointments.length === 0 && <p>Aucun rendez-vous.</p>}
-
-        <ul>
-          {appointments.map((a) => (
-            <li key={a._id} className="border-b py-2 flex justify-between items-center">
-              <div>
-                <strong>{a.patient?.name}</strong> — {new Date(a.date).toLocaleString()} 
-                {" "}({a.duration} min) — {a.notes || "Pas de notes"}
+      {/* Grille des patients */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPatients.length === 0 ? (
+          <div className="col-span-full text-center text-gray-500">
+            Aucun patient trouvé.
+          </div>
+        ) : (
+          filteredPatients.map((p) => (
+            <div
+              key={p._id}
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border border-gray-100"
+            >
+              <div className="flex items-center mb-4">
+                <div className="bg-blue-100 p-3 rounded-full mr-4">
+                  <FiUser className="text-blue-600 text-xl" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">{p.name}</h2>
+                  <p className="text-gray-600 text-sm">{p.email}</p>
+                </div>
               </div>
-              <button
-                onClick={() => handleDeleteRdv(a._id)}
-                className="bg-red-500 text-white px-3 py-1 rounded"
-              >
-                Supprimer
-              </button>
-            </li>
-          ))}
-        </ul>
+
+              <div className="space-y-2 text-gray-600">
+                {p.phone && (
+                  <div className="flex items-center">
+                    <FiPhone className="mr-2 text-gray-500" /> {p.phone}
+                  </div>
+                )}
+                {p.address && (
+                  <div className="flex items-center">
+                    <FiMapPin className="mr-2 text-gray-500" /> {p.address}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <button
+                  onClick={() => handleViewDossier(p._id)}
+                  className="w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                >
+                  <FiFolder className="mr-2" /> Voir Dossier Médical
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

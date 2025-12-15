@@ -10,7 +10,8 @@ import {
   Line,
   ResponsiveContainer,
 } from "recharts";
-import { FiUser, FiCalendar, FiClock, FiFileText } from "react-icons/fi";
+import { FiUser, FiCalendar, FiClock, FiFileText, FiMessageSquare } from "react-icons/fi";
+import MedecinChat from "./MedecinChat";
 
 function MedecinDashboard() {
   const [stats, setStats] = useState({
@@ -22,35 +23,15 @@ function MedecinDashboard() {
   const [weeklyRdv, setWeeklyRdv] = useState([]);
   const [recentConsultations, setRecentConsultations] = useState([]);
   const [rdvsToday, setRdvsToday] = useState([]);
-  const [nextRdv, setNextRdv] = useState(null);
+  const [nextRdv, setNextRdv] = useState(null); // ✅ Prochaine consultation d'aujourd'hui
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
 
+  const medecin = JSON.parse(localStorage.getItem("medecin"));
   const token = localStorage.getItem("authToken");
-
-  // 🔹 Charger le médecin depuis localStorage
-  const medecinStr = localStorage.getItem("medecin");
-  let medecin = null;
-
-  try {
-    if (medecinStr) {
-      medecin = JSON.parse(medecinStr);
-      if (!medecin.id && !medecin._id) {
-        throw new Error("Objet médecin invalide");
-      }
-    }
-  } catch (e) {
-    console.error("Erreur parsing medecin:", e);
-    medecin = null;
-  }
 
   // 🔁 Charger les données du médecin
   useEffect(() => {
-    if (!medecin || !medecin.id) {
-      setError("Profil médecin introuvable. Reconnectez-vous.");
-      setLoading(false);
-      return;
-    }
+    if (!medecin || !medecin.id) return;
 
     const fetchStats = async () => {
       try {
@@ -61,23 +42,32 @@ function MedecinDashboard() {
 
         const myRdvs = rdvRes.data.filter((r) => r.medecin._id === medecin.id);
 
-        // RDV du jour
+        // 🔥 Filtrer les RDV du jour uniquement
         const today = new Date().toISOString().split("T")[0];
         const todayList = myRdvs.filter((r) => r.date.split("T")[0] === today);
         setRdvsToday(todayList);
 
-        // Prochaine consultation
-        const future = myRdvs
+        // 🔥 Prochaine consultation d'aujourd'hui (pas du futur)
+        const futureToday = todayList
           .filter((r) => r.date >= new Date().toISOString())
           .sort((a, b) => new Date(a.date) - new Date(b.date));
-        setNextRdv(future[0] || null);
+        setNextRdv(futureToday[0] || null);
 
-        // Statistiques personnelles (à implémenter côté backend)
-        // Pour l’instant, on simule les données
+        // 🔥 Calcul des consultations du mois
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const consultationsThisMonth = myRdvs.filter((r) => {
+          const date = new Date(r.date);
+          return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+        }).length;
+
+        // Statistiques personnelles (maintenant dynamiques)
         setStats({
-          totalPatients: todayList.length, // Exemple : patients vus aujourd'hui
-          consultationsThisMonth: 15,      // Exemple
-          totalConsultations: 120,         // Exemple
+          totalPatients: todayList.length, // ✅ Patients vus aujourd'hui
+          consultationsThisMonth,          // ✅ Réel nombre de consultations ce mois
+          totalConsultations: myRdvs.length, // Total des RDV
         });
 
         // Graphiques
@@ -106,20 +96,18 @@ function MedecinDashboard() {
           { name: "Dim", value: 0 },
         ]);
 
-        setRecentConsultations(todayList.slice(0, 5)); // 5 dernières consultations
+        // 🔥 Afficher les 3 dernières consultations d'aujourd'hui
+        setRecentConsultations(todayList.slice(0, 3)); // ✅ 3 consultations récentes
 
       } catch (err) {
         console.error("Erreur chargement dashboard:", err);
         setError("Impossible de charger vos données.");
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchStats();
   }, [medecin, token]);
 
-  if (loading) return <p className="p-4">Chargement...</p>;
   if (error) return <p className="text-red-600 p-4">{error}</p>;
   if (!medecin) {
     return (
@@ -130,111 +118,134 @@ function MedecinDashboard() {
     );
   }
 
-  // 🔸 Gestion du chemin de la photo
-  const photoUrl = medecin?.photo && !medecin.photo.startsWith('http')
-    ? `http://localhost:5000${medecin.photo}`
-    : medecin?.photo || "https://via.placeholder.com/120";
-
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      {/* TITRE */}
-      <h1 className="text-3xl font-bold mb-2 text-blue-700">
-        👋 Bienvenue {medecin?.name}
-      </h1>
-      <p className="text-gray-600 mb-6">
-        Voici votre tableau de bord personnel.
-      </p>
-
-      {/* PHOTO + INFO MEDECIN */}
-      <div className="bg-white shadow rounded p-6 flex items-center gap-6 mb-6">
-        <img
-          src={photoUrl}
-          alt="Photo de profil"
-          className="w-24 h-24 rounded-full border-2 border-blue-500"
-        />
-        <div>
-          <p className="text-xl font-semibold">Dr. {medecin?.name}</p>
-          <p className="text-gray-600">{medecin?.specialite || "Médecin Généraliste"}</p>
-          <p className="text-gray-500">Email : {medecin?.email}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto">
+        {/* En-tête */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Bonjour {medecin.name.split(" ").pop()}</h1>
+          <p className="text-gray-600 mt-2">Voici un aperçu de votre activité aujourd'hui.</p>
         </div>
-      </div>
 
-      {/* CARTES STATISTIQUES PERSONNELLES */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white shadow rounded p-6 flex items-center">
-          <FiUser className="text-4xl text-blue-500 mr-4" />
-          <div>
-            <p className="text-gray-500">Patients aujourd'hui</p>
-            <p className="text-2xl font-bold">{rdvsToday.length}</p>
+        {/* Statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg p-6 transform transition hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100">Patients aujourd'hui</p>
+                <p className="text-3xl font-bold">{rdvsToday.length}</p>
+              </div>
+              <div className="bg-blue-400 p-3 rounded-full">
+                <FiUser size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-lg p-6 transform transition hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100">Rendez-vous du jour</p>
+                <p className="text-3xl font-bold">{rdvsToday.length}</p>
+              </div>
+              <div className="bg-green-400 p-3 rounded-full">
+                <FiCalendar size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl shadow-lg p-6 transform transition hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-amber-100">Prochaine consultation</p>
+                <p className="text-xl font-bold">
+                  {nextRdv
+                    ? `${new Date(nextRdv.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : "Aucune"}
+                </p>
+              </div>
+              <div className="bg-amber-400 p-3 rounded-full">
+                <FiClock size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white rounded-2xl shadow-lg p-6 transform transition hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100">Consultations ce mois</p>
+                <p className="text-3xl font-bold">{stats.consultationsThisMonth}</p>
+              </div>
+              <div className="bg-purple-400 p-3 rounded-full">
+                <FiFileText size={24} />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white shadow rounded p-6 flex items-center">
-          <FiCalendar className="text-4xl text-green-500 mr-4" />
-          <div>
-            <p className="text-gray-500">Rendez-vous du jour</p>
-            <p className="text-2xl font-bold">{rdvsToday.length}</p>
+        {/* Graphiques */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Consultations par mois</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={monthlyConsultations}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Rendez-vous cette semaine</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={weeklyRdv}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white shadow rounded p-6 flex items-center">
-          <FiClock className="text-4xl text-yellow-500 mr-4" />
-          <div>
-            <p className="text-gray-500">Prochaine consultation</p>
-            <p className="text-lg font-bold">
-              {nextRdv ? `${new Date(nextRdv.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Aucune"}
-            </p>
-          </div>
+        {/* Consultations récentes */}
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Consultations récentes</h2>
+          {recentConsultations.length === 0 ? (
+            <p className="text-gray-500">Aucune consultation aujourd'hui.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recentConsultations.map((r) => (
+                <div key={r._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                  <div className="flex justify-between">
+                    <h3 className="font-semibold text-gray-800">{r.patient.name}</h3>
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      {new Date(r.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm mt-2">
+                    {r.notes || "Aucune note"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="bg-white shadow rounded p-6 flex items-center">
-          <FiFileText className="text-4xl text-purple-500 mr-4" />
-          <div>
-            <p className="text-gray-500">Consultations ce mois</p>
-            <p className="text-2xl font-bold">{stats.consultationsThisMonth}</p>
-          </div>
-        </div>
-      </div>
+        {/* Bouton flottant pour le chat */}
+        <button
+          className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-full shadow-lg hover:from-blue-700 hover:to-indigo-800 transition z-50 flex items-center justify-center"
+          onClick={() => {
+            // Tu peux ouvrir un modal ou une sidebar ici
+            // Pour l'instant, on suppose que MedecinChat gère l'ouverture
+          }}
+        >
+          <FiMessageSquare size={24} />
+        </button>
 
-      {/* CHARTS PERSONNELS */}
-      <div className="bg-white shadow rounded p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Consultations par mois</h2>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={monthlyConsultations}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="value" fill="#2563eb" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="bg-white shadow rounded p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Rendez-vous cette semaine</h2>
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={weeklyRdv}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* CONSULTATIONS RÉCENTES */}
-      <div className="bg-white shadow rounded p-6">
-        <h2 className="text-xl font-semibold mb-4">Consultations récentes</h2>
-        {recentConsultations.length === 0 ? (
-          <p className="text-gray-500">Aucune consultation aujourd'hui.</p>
-        ) : (
-          <ul>
-            {recentConsultations.map((r) => (
-              <li key={r._id} className="border-b py-3">
-                <strong>{r.patient.name}</strong> — {new Date(r.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* ✅ Intégration du chat */}
+        <MedecinChat />
       </div>
     </div>
   );
