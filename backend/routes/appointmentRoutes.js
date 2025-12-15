@@ -107,5 +107,23 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: "Erreur serveur." });
   }
 });
+/* -----------------------------------------
+ 🟩 NOUVEAU : RDV d’un patient spécifique
+   GET /api/appointments/patient/:patientId
+--------------------------------------------*/
+router.get('/patient/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const rdv = await Appointment.find({ patient: patientId })
+      .populate('medecin', 'name specialty')
+      .sort({ date: -1 }); // Du plus récent au plus ancien
+
+    res.json(rdv);
+  } catch (error) {
+    console.error('Erreur chargement RDV patient:', error);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
+});
 
 module.exports = router;
