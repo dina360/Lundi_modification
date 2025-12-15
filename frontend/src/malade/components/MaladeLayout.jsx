@@ -3,6 +3,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { FiHome, FiCalendar, FiClock, FiUser, FiLogOut, FiCpu } from "react-icons/fi";
 import "../malade.css";
 
+// ✅ Import du logo (chemin depuis src/malade/components vers src/assets)
+import logo from "../../assets/neohealth-logo.jpg";
+
 export default function MaladeLayout({ title, subtitle, children }) {
   const navigate = useNavigate();
 
@@ -28,8 +31,13 @@ export default function MaladeLayout({ title, subtitle, children }) {
   return (
     <div className="malade-shell">
       <aside className="malade-sidebar">
+        {/* ✅ Brand avec logo */}
         <div className="malade-brand">
-          <div className="malade-brand-badge">NH</div>
+          <img
+            src={logo}
+            alt="NeoHealth"
+            className="malade-brand-logo"
+          />
           <div className="malade-brand-title">
             <strong>Espace Patient</strong>
             <span>NeoHealth</span>
@@ -58,7 +66,6 @@ export default function MaladeLayout({ title, subtitle, children }) {
             <FiClock /> Historique
           </NavLink>
 
-          {/* ✅ Nouveau bouton IA */}
           <NavLink
             to="/malade/ia"
             className={({ isActive }) => `malade-link ${isActive ? "active" : ""}`}
