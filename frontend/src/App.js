@@ -7,58 +7,66 @@ import LoginPage from "./LoginPage";
 import RegisterPage from "./RegisterPage";
 
 import Dashboard from "./Dashboard";
-import Home from "./Home"; // Gestion des patients (admin)
+import Home from "./Home"; // page admin (gestion patients avec sidebar)
 import RendezVousPage from "./RendezVousPage";
 import DossierPatient from "./DossierPatient";
 import StaffPage from "./staff/StaffPage";
-import ProtectedRoute from "./ProtectedRoute";
-import "./App.css";
 
 import DoctorsList from "./doctors/DoctorsList";
 import DoctorDetail from "./doctors/DoctorDetail";
 import AddDoctor from "./doctors/AddDoctor";
 import EditDoctor from "./doctors/EditDoctor";
+
 import SallesBlocs from "./SallesBlocs";
 
+import ProtectedRoute from "./ProtectedRoute";
+import "./App.css";
+
+/* --- IMPORTS MALADE --- */
+import MaladeHome from "./malade/MaladeHome";
+import MaladeDemandeRdv from "./malade/MaladeDemandeRdv";
+import MaladeHistoriqueRdv from "./malade/MaladeHistoriqueRdv";
+import MaladeProfile from "./malade/MaladeProfile";
+
 /* ============================
-   Composants pour chaque rôle
+   Composants simples par rôle
    ============================ */
 
 const PatientHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Patient</h1>
-    <p>Bienvenue sur votre espace patient. (Interface en cours de développement)</p>
+    <p>Bienvenue sur votre espace patient. (En cours de développement)</p>
   </div>
 );
 
 const MedecinHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Médecin</h1>
-    <p>Tableau de bord médecin. (Fonctionnalités à ajouter plus tard)</p>
+    <p>Tableau de bord médecin. (Fonctionnalités à ajouter)</p>
   </div>
 );
 
 const SecretaireHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Secrétaire</h1>
-    <p>Gestion des rendez-vous et des patients. (Interface à compléter)</p>
+    <p>Gestion des rendez-vous et patients. (À compléter)</p>
   </div>
 );
-
-/* ============================
-   Routes principales
-   ============================ */
 
 function AppContent() {
   return (
     <div className="app-container">
       <Routes>
-        {/* Public */}
+        {/* =================
+            ROUTES PUBLIQUES
+           ================= */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* ADMIN */}
+        {/* =================
+              ADMIN
+           ================= */}
         <Route
           path="/dashboard"
           element={
@@ -72,7 +80,7 @@ function AppContent() {
           path="/patients"
           element={
             <ProtectedRoute roles={["admin"]}>
-              <Home /> {/* gestion patients avec sidebar */}
+              <Home />
             </ProtectedRoute>
           }
         />
@@ -96,7 +104,57 @@ function AppContent() {
           }
         />
 
-        {/* ESPACES PAR RÔLE */}
+        {/* =================
+            ESPACE MALADE
+           ================= */}
+        <Route
+          path="/malade/home"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHome />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/malade/rendezvous/demande"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeDemandeRdv />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/malade/rendezvous/historique"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/malade/rendezvous/modifier/:rdvId"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/malade/profile"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =================
+            ESPACES PAR RÔLE
+           ================= */}
         <Route
           path="/patient/home"
           element={
@@ -124,7 +182,9 @@ function AppContent() {
           }
         />
 
-        {/* Personnel (admin) */}
+        {/* =================
+             PERSONNEL ADMIN
+           ================= */}
         <Route
           path="/personnel"
           element={
@@ -134,7 +194,9 @@ function AppContent() {
           }
         />
 
-        {/* Médecins → ADMIN UNIQUEMENT */}
+        {/* =================
+            MÉDECINS (ADMIN)
+           ================= */}
         <Route
           path="/docteurs"
           element={
@@ -168,7 +230,9 @@ function AppContent() {
           }
         />
 
-        {/* Salles & Blocs (admin) */}
+        {/* =================
+            SALLES & BLOCS
+           ================= */}
         <Route
           path="/salles"
           element={
@@ -178,7 +242,9 @@ function AppContent() {
           }
         />
 
-        {/* Fallback */}
+        {/* =================
+             FALLBACK
+           ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

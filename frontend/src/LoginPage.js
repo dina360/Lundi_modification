@@ -33,7 +33,9 @@ const handleLogin = async (e) => {
 
     // 🔐 On garde le token + le rôle en local
     localStorage.setItem("authToken", token);
-    localStorage.setItem("userRole", user.role);        // "admin" | "medecin" | "patient" | ...
+    localStorage.setItem("userRole", user.role);  
+    localStorage.setItem("userId", user._id || user.id || "");
+      // "admin" | "medecin" | "patient" | ...
     localStorage.setItem("userName", user.name || "");
     localStorage.setItem("userEmail", user.email || "");
 
@@ -45,7 +47,7 @@ const handleLogin = async (e) => {
     } else if (user.role === 'secretaire') {
       navigate('/secretaire/home');
     } else if (user.role === 'patient') {
-      navigate('/patient/home');
+      navigate('/malade/home');
     } else {
       // fallback au cas où
       navigate('/');
