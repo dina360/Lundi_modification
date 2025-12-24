@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Patient = require('../models/patientModel');
+const Appointment = require("../models/Appointment");
 
 const router = express.Router();
 
@@ -146,6 +147,24 @@ router.delete('/:_id/dossier', async (req, res) => {
     await patient.save();
 
     res.json({ message: "Document supprimé", medicalRecords: patient.medicalRecords });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 🔹 Charger les patients d’un médecin spécifique via ses RDV
+router.get('/medecin/:medecinId', async (req, res) => {
+  try {
+    const { medecinId } = req.params;
+
+    // Trouver les IDs des patients ayant un RDV avec ce médecin
+    const rdv = await Appointment.find({ medecin: medecinId }).distinct('patient');
+    const patientIds = rdv;
+
+    // Charger les détails des patients
+    const patients = await Patient.find({ _id: { $in: patientIds } });
+
+    res.json(patients);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

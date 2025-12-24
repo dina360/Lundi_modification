@@ -7,6 +7,7 @@ const router = express.Router();
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const verifyRole = require('../middleware/verifyRole');
+const Doctor = require('../models/Doctor');
 
 // 🧩 Helper : génération du token
 function generateToken(user) {
@@ -123,7 +124,6 @@ router.post(
     }
   }
 );
-
 /* ---------------------------------------------------
    3) LOGIN (tous rôles) 
 ----------------------------------------------------*/
@@ -148,20 +148,21 @@ router.post('/login', async (req, res) => {
       message: 'Connexion réussie.',
       token,
       user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      specialty: user.specialty,
-      photo: user.photo, // ✅ Ajoute cette ligne
-    },
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        specialty: user.specialty,
+        photo: user.photo,
+        phone: user.phone,    // ✅ Ajoute cette ligne
+        address: user.address // ✅ Ajoute cette ligne
+      },
     });
   } catch (error) {
     console.error('Erreur login:', error);
     res.status(500).json({ message: 'Erreur serveur.' });
   }
 });
-
 /* ---------------------------------------------------
    4) /me → infos utilisateur connecté
 ----------------------------------------------------*/
@@ -172,7 +173,29 @@ router.get('/me', authMiddleware, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });
     }
-    res.json(user);
+    // 🔥 Charger les infos du médecin depuis Doctor
+    const doctor = await Doctor.findOne({ userId: user._id });
+    
+    console.log(" 🔥 Données envoyées par /me:", {  // ✅ Log
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      specialty: user.specialty,
+      photo: user.photo,
+      phone: doctor?.phone || "",    // ✅ Prendre le phone depuis Doctor
+      address: doctor?.address || "" 
+    });
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      specialty: user.specialty,
+      photo: user.photo,
+      phone: doctor?.phone || "",    // ✅ Prendre le phone depuis Doctor
+      address: doctor?.address || "" 
+    });
   } catch (error) {
     console.error('Erreur /me:', error);
     res.status(500).json({ message: 'Erreur serveur.' });

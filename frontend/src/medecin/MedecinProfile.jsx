@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FiUser, FiCamera, FiSave, FiMail, FiPhone, FiMapPin, FiClock, FiX, FiCheck } from "react-icons/fi";
-import ToastNotification from "../ToastNotification"; 
+import ToastNotification from "../ToastNotification";
 
 export default function MedecinProfile() {
   const [medecin, setMedecin] = useState(null);
@@ -66,6 +66,19 @@ export default function MedecinProfile() {
 
     setLoading(false);
   }, []);
+  useEffect(() => {
+    const medecinStr = localStorage.getItem("medecin");
+    if (medecinStr) {
+      const userData = JSON.parse(medecinStr);
+      setMedecin(userData);
+      setEditForm({
+        name: userData.name || "",
+        specialty: userData.specialty || "",
+        phone: userData.phone || "",
+        address: userData.address || "",
+      });
+    }
+  }, [medecin?.phone, medecin?.address]); // ✅ Se recharge quand phone ou address change
 
   // 🔁 Charger les RDV du jour
   useEffect(() => {
@@ -135,18 +148,43 @@ export default function MedecinProfile() {
   };
 
   const handleSaveProfile = async () => {
-    if (!medecin || !medecin.id) return;
+  if (!medecin || !medecin.id) return;
 
-    try {
-      // Remplace par une route backend si elle existe, sinon afficher un message
-      showToast("✅ Profil mis à jour dans localStorage (route backend manquante)", "success");
-      const updatedMedecin = { ...medecin, ...editForm };
-      localStorage.setItem("medecin", JSON.stringify(updatedMedecin));
-      setMedecin(updatedMedecin);
-    } catch (error) {
-      showToast("❌ Erreur lors de la mise à jour du profil.", "error");
-    }
-  };
+  const token = localStorage.getItem("authToken");
+
+  try {
+    // 🔥 Appeler la route backend pour mettre à jour le profil
+    const res = await axios.put(
+      `http://localhost:5000/api/medecins/profil/${medecin.id}`,
+      editForm,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    showToast("✅ Profil mis à jour avec succès.", "success");
+
+    // 🔥 Recharger les données du médecin depuis le backend
+    const updatedMedecinRes = await axios.get("http://localhost:5000/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const updatedMedecin = updatedMedecinRes.data;
+
+    // 🔥 Mettre à jour dans le localStorage
+    localStorage.setItem("medecin", JSON.stringify(updatedMedecin));
+    setMedecin(updatedMedecin);
+    setEditForm({
+      name: updatedMedecin.name || "",
+      specialty: updatedMedecin.specialty || "",
+      phone: updatedMedecin.phone || "",
+      address: updatedMedecin.address || "",
+    });
+  } catch (error) {
+    console.error("Erreur mise à jour profil:", error);
+    showToast("❌ Erreur lors de la mise à jour du profil.", "error");
+  }
+};
 
   if (loading) {
     return (
@@ -310,7 +348,6 @@ export default function MedecinProfile() {
             </div>
           </div>
         </div>
-
         {/* ✅ Zone pour afficher le toast */}
         {toast && (
           <ToastNotification

@@ -19,6 +19,7 @@ const absenceSchema = new mongoose.Schema({
 
 const doctorSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // 🔥 Nouveau champ
   specialty: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, default: "" },

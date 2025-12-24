@@ -8,31 +8,38 @@ function MedecinPatientsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [appointmentsModal, setAppointmentsModal] = useState(null); // Pour stocker les RDV d’un patient
+  const [appointmentsModal, setAppointmentsModal] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
 
+  const medecin = JSON.parse(localStorage.getItem("medecin"));
   const token = localStorage.getItem("authToken");
   const navigate = useNavigate();
 
-  // Charger les patients
+  // Charger les patients du médecin connecté
   useEffect(() => {
+    if (!medecin || !medecin.id) {
+      setError("Médecin non connecté.");
+      setLoading(false);
+      return;
+    }
+
     const loadPatients = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/patients", {
+        const res = await axios.get(`http://localhost:5000/api/patients/medecin/${medecin.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPatients(res.data);
       } catch (err) {
         console.error("Erreur chargement patients :", err);
-        setError("Impossible de charger la liste des patients.");
+        setError("Impossible de charger la liste de vos patients.");
       } finally {
         setLoading(false);
       }
     };
 
     loadPatients();
-  }, [token]);
+  }, [token, medecin]);
 
   // Filtrer les patients en fonction de la recherche
   const filteredPatients = patients.filter(patient =>
@@ -64,16 +71,16 @@ function MedecinPatientsList() {
   };
 
   const handleViewDossier = (patientId) => {
-    navigate(`/patients/${patientId}/dossier`);
+    navigate(`/medecin/patients/${patientId}/dossier`);
   };
 
-  if (loading) return <div className="p-6 text-center">Chargement des patients...</div>;
+  if (loading) return <div className="p-6 text-center">Chargement de vos patients...</div>;
   if (error) return <div className="p-6 text-red-500 text-center">{error}</div>;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-blue-800 flex items-center">
-        <FiUser className="mr-3" /> Liste des Patients
+        <FiUser className="mr-3" /> Mes Patients
       </h1>
 
       {/* Barre de recherche */}
@@ -128,7 +135,7 @@ function MedecinPatientsList() {
               <div className="mt-4 flex flex-col space-y-3">
                 <button
                   onClick={() => handleViewDossier(p._id)}
-                  className="w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                  className="w-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition"
                 >
                   <FiFolder className="mr-2" /> Voir Dossier Médical
                 </button>
@@ -136,7 +143,7 @@ function MedecinPatientsList() {
                 {/* Bouton "Voir Rendez-vous" */}
                 <button
                   onClick={() => loadAppointments(p._id)}
-                  className="w-full flex items-center justify-center  bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                  className="w-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-2 rounded-lg hover:from-blue-600 hover:to-cyan-700 transition"
                 >
                   <FiCalendar className="mr-2" /> Voir Rendez-vous
                 </button>
@@ -150,11 +157,11 @@ function MedecinPatientsList() {
       {appointmentsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-800">Rendez-vous de {filteredPatients.find(p => p._id === appointmentsModal)?.name}</h3>
+            <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-xl">
+              <h3 className="text-xl font-semibold">Rendez-vous de {filteredPatients.find(p => p._id === appointmentsModal)?.name}</h3>
               <button
                 onClick={closeAppointmentsModal}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-white hover:text-gray-200"
               >
                 <FiX size={24} />
               </button>

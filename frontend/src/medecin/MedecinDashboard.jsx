@@ -35,17 +35,21 @@ function MedecinDashboard() {
 
     const fetchStats = async () => {
       try {
-        // Charger les RDV du médecin
+        // 🔥 Charger les RDV du médecin connecté
         const rdvRes = await axios.get("http://localhost:5000/api/appointments", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        // 🔥 Filtrer les RDV du médecin connecté
         const myRdvs = rdvRes.data.filter((r) => r.medecin._id === medecin.id);
+
+        // 🔥 Calculer le nombre de patients uniques
+        const uniquePatientIds = new Set(myRdvs.map(r => r.patient._id));
+        const totalPatients = uniquePatientIds.size;
 
         // 🔥 Filtrer les RDV du jour uniquement
         const today = new Date().toISOString().split("T")[0];
         const todayList = myRdvs.filter((r) => r.date.split("T")[0] === today);
-        setRdvsToday(todayList);
 
         // 🔥 Prochaine consultation d'aujourd'hui (pas du futur)
         const futureToday = todayList
@@ -65,12 +69,12 @@ function MedecinDashboard() {
 
         // Statistiques personnelles (maintenant dynamiques)
         setStats({
-          totalPatients: todayList.length, // ✅ Patients vus aujourd'hui
+          totalPatients,                   // ✅ Patients uniques du médecin
           consultationsThisMonth,          // ✅ Réel nombre de consultations ce mois
-          totalConsultations: myRdvs.length, // Total des RDV
+          totalConsultations: myRdvs.length, // Total des RDV du médecin
         });
 
-        // Graphiques
+        // Graphiques (tu peux aussi les filtrer par médecin)
         setMonthlyConsultations([
           { name: "Jan", value: 10 },
           { name: "Fév", value: 15 },
@@ -123,7 +127,9 @@ function MedecinDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Bonjour {medecin.name.split(" ").pop()}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Bonjour {medecin.name.split(" ")[0]} {/* ✅ Affiche le premier mot du nom */}
+          </h1>
           <p className="text-gray-600 mt-2">Voici un aperçu de votre activité aujourd'hui.</p>
         </div>
 

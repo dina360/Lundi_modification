@@ -61,10 +61,10 @@ function MedecinLayout() {
             alt="Photo de profil"
             className="w-12 h-12 rounded-full object-cover border-2 border-white mx-auto"
           />
-          <p className="text-center mt-2 font-semibold">{medecin.name}</p>
+          <p className="text-center mt-2 font-semibold">Dr.{medecin.name}</p>
           {/* ✅ Affiche la spécialité ici */}
           <p className="text-center text-sm text-blue-300">
-            Spécialité {medecin.specialty || "Spécialité non définie"}
+            Spécialite en {medecin.specialty || "Spécialité non définie"}
           </p>
           <p className="text-center text-sm text-gray-300">{medecin.email}</p>
         </div>

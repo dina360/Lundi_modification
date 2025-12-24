@@ -26,5 +26,20 @@ router.post("/", authMiddleware, verifyRole(["medecin"]), async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
+// 🔹 Charger les consultations d’un patient spécifique
+router.get('/patient/:patientId', authMiddleware, verifyRole(['medecin', 'admin']), async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const consultations = await Consultation.find({ patient: patientId })
+      .populate('medecin', 'name')
+      .sort({ date: -1 }); // Du plus récent au plus ancien
+
+    res.json(consultations);
+  } catch (err) {
+    console.error('Erreur chargement consultations patient:', err);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
+});
 
 module.exports = router;

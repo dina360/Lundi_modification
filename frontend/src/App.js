@@ -20,6 +20,7 @@ import MedecinPatientsList from "./medecin/MedecinPatientsList";
 import AddConsultation from "./medecin/AddConsultation";
 import SelectPatientForConsultation from "./medecin/SelectPatientForConsultation";
 import MedecinDisponibilites from "./medecin/MedecinDisponibilites";
+import MedecinPatientDossier from "./medecin/MedecinPatientDossier";
 
 // Gestion Médecins (Admin)
 import DoctorsList from "./doctors/DoctorsList";
@@ -98,6 +99,7 @@ function App() {
           <Route path="PatientDetails" element={<SelectPatientForConsultation />} />
           <Route path="patients/:patientId/ajouter-consultation" element={<AddConsultation />} />
           <Route path="dispoMedecin" element={<MedecinDisponibilites />} />
+          <Route path="patients/:id/dossier" element={<MedecinPatientDossier />} />
         </Route>
 
 
