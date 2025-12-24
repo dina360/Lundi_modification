@@ -34,6 +34,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    // 🖼️ Photo du profil
+    photo: {
+      type: String,
+      default: "/uploads/medecins/default.jpg"
+    }
   },
   {
     timestamps: true, // createdAt, updatedAt

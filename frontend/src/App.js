@@ -1,4 +1,3 @@
-// src/App.js
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -12,6 +11,17 @@ import RendezVousPage from "./RendezVousPage";
 import DossierPatient from "./DossierPatient";
 import StaffPage from "./staff/StaffPage";
 
+
+// Espace Médecin
+import MedecinLayout from "./medecin/MedecinLayout";
+import MedecinDashboard from "./medecin/MedecinDashboard";
+import MedecinProfile from "./medecin/MedecinProfile";
+import MedecinPatientsList from "./medecin/MedecinPatientsList";
+import AddConsultation from "./medecin/AddConsultation";
+import SelectPatientForConsultation from "./medecin/SelectPatientForConsultation";
+import MedecinDisponibilites from "./medecin/MedecinDisponibilites";
+
+// Gestion Médecins (Admin)
 import DoctorsList from "./doctors/DoctorsList";
 import DoctorDetail from "./doctors/DoctorDetail";
 import AddDoctor from "./doctors/AddDoctor";
@@ -28,38 +38,41 @@ import MaladeDemandeRdv from "./malade/MaladeDemandeRdv";
 import MaladeHistoriqueRdv from "./malade/MaladeHistoriqueRdv";
 import MaladeProfile from "./malade/MaladeProfile";
 
-/* ============================
-   Composants simples par rôle
-   ============================ */
 
 const PatientHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Patient</h1>
-    <p>Bienvenue sur votre espace patient. (En cours de développement)</p>
+
+    <p>Bienvenue sur votre espace patient.</p>
   </div>
 );
 
 const MedecinHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Médecin</h1>
-    <p>Tableau de bord médecin. (Fonctionnalités à ajouter)</p>
+
+    <p>Tableau de bord médecin.</p>
   </div>
 );
 
 const SecretaireHome = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Secrétaire</h1>
-    <p>Gestion des rendez-vous et patients. (À compléter)</p>
+
+    <p>Gestion des rendez-vous & dossiers.</p>
   </div>
 );
 
-function AppContent() {
+/* ============================
+   ROUTES PRINCIPALES
+   ============================ */
+
+function App() {
   return (
     <div className="app-container">
       <Routes>
-        {/* =================
-            ROUTES PUBLIQUES
-           ================= */}
+
+        {/* PUBLIC */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -84,25 +97,10 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route path="/patients/:patientId/dossier" element={
+          <ProtectedRoute roles={["admin","medecin"]}><DossierPatient /></ProtectedRoute>
+        }/>
 
-        <Route
-          path="/patients/:patientId/dossier"
-          element={
-            <ProtectedRoute roles={["admin", "medecin"]}>
-              <DossierPatient />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* RDV : admin + medecin + secretaire */}
-        <Route
-          path="/rendezvous"
-          element={
-            <ProtectedRoute roles={["admin", "medecin", "secretaire"]}>
-              <RendezVousPage />
-            </ProtectedRoute>
-          }
-        />
 
         {/* =================
             ESPACE MALADE
@@ -155,32 +153,14 @@ function AppContent() {
         {/* =================
             ESPACES PAR RÔLE
            ================= */}
-        <Route
-          path="/patient/home"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <PatientHome />
-            </ProtectedRoute>
-          }
-        />
+        
 
-        <Route
-          path="/medecin/home"
-          element={
-            <ProtectedRoute roles={["medecin"]}>
-              <MedecinHome />
-            </ProtectedRoute>
-          }
-        />
 
-        <Route
-          path="/secretaire/home"
-          element={
-            <ProtectedRoute roles={["secretaire"]}>
-              <SecretaireHome />
-            </ProtectedRoute>
-          }
-        />
+        {/* Rendez-vous → admin + medecin + secretaire */}
+        <Route path="/rendezvous" element={
+          <ProtectedRoute roles={["admin","medecin","secretaire"]}><RendezVousPage /></ProtectedRoute>
+        }/>
+
 
         {/* =================
              PERSONNEL ADMIN
@@ -241,14 +221,54 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        {/* ---------------- ESPACE MÉDECIN ---------------- */}
+        <Route path="/medecin/*" element={
+          <ProtectedRoute roles={["medecin"]}><MedecinLayout /></ProtectedRoute>
+        }>
+          <Route path="home" element={<MedecinDashboard />} />
+          <Route path="profile" element={<MedecinProfile />} />
+          <Route path="patients" element={<MedecinPatientsList />} />
+          <Route path="PatientDetails" element={<SelectPatientForConsultation />} />
+          <Route path="patients/:patientId/ajouter-consultation" element={<AddConsultation />} />
+          <Route path="dispoMedecin" element={<MedecinDisponibilites />} />
+        </Route>
 
+ <Route path="/patient/home" element={
+          <ProtectedRoute roles={["patient"]}><PatientHome /></ProtectedRoute>
+        }/>
         {/* =================
              FALLBACK
            ================= */}
+        
+
+
+       
+
+
+        {/* ---------------- SECRÉTAIRE ---------------- */}
+        <Route path="/secretaire/home" element={
+          <ProtectedRoute roles={["secretaire"]}><SecretaireHome /></ProtectedRoute>
+        }/>
+
+
+       
+
+
+        
+
+
+        {/* Salles & Blocs */}
+        <Route path="/salles" element={
+          <ProtectedRoute roles={["admin"]}><SallesBlocs /></ProtectedRoute>
+        }/>
+
+
+        {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </div>
   );
 }
 
-export default AppContent;
+export default App;
