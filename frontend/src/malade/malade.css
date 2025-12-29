@@ -1,0 +1,592 @@
+/* =========================
+   NeoHealth - Espace Patient (PRO)
+   Remplace entièrement malade.css
+   ========================= */
+
+:root{
+  /* Couleurs (style portail santé) */
+  --p-bg: #f4f7fb;
+  --p-surface: #ffffff;
+  --p-surface2: #f8fafc;
+  --p-border: #e2e8f0;
+  --p-text: #0f172a;
+  --p-muted: #64748b;
+
+  --p-primary: #2563eb;
+  --p-primary-2: #60a5fa;
+
+  --p-success: #16a34a;
+  --p-warning: #f59e0b;
+  --p-danger: #ef4444;
+  --p-info: #0ea5e9;
+
+  --p-radius: 16px;
+  --p-shadow: 0 10px 28px rgba(2, 6, 23, 0.08);
+  --p-shadow2: 0 6px 18px rgba(2, 6, 23, 0.06);
+  --p-ring: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+/* =========================================================
+   PROFIL PATIENT (page /malade/profile)
+   Objectif : mise en page "portail patient" (carte identité + raccourcis)
+   ========================================================= */
+
+/* Grille principale : Identité (gauche) + Actions (droite) */
+.p-profile-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 14px;
+}
+
+/* Version mobile : une seule colonne */
+@media (max-width: 980px) {
+  .p-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Carte identité : fond léger en dégradé */
+.p-profile-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.10),
+    rgba(255, 255, 255, 0.95)
+  );
+}
+
+/* Ligne du haut (avatar + informations) */
+.p-profile-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Avatar (icône homme/femme/neutre) */
+.p-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.90),
+    rgba(96, 165, 250, 0.80)
+  );
+
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.18);
+}
+
+.p-avatar svg {
+  font-size: 34px;
+}
+
+/* Zone texte (nom + email + badges) */
+.p-identity {
+  flex: 1;
+}
+
+.p-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+/* Ligne email (icône + texte) */
+.p-line {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--p-muted);
+}
+
+/* Petits badges (chips) */
+.p-chips {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.p-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--p-border);
+  color: var(--p-text);
+}
+
+/* Chip spécial "info" */
+.p-chip-info {
+  border-color: rgba(14, 165, 233, 0.25);
+  background: rgba(14, 165, 233, 0.10);
+  color: #075985;
+}
+
+/* Ligne identifiant patient + bouton copier */
+.p-id-row {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+/* Bloc identifiant */
+.p-id-box {
+  flex: 1;
+  min-width: 240px;
+
+  padding: 12px;
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--p-border);
+}
+
+.p-id-label {
+  display: block;
+  font-size: 12px;
+  color: var(--p-muted);
+}
+
+.p-id-value {
+  display: block;
+  margin-top: 6px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+/* Zone de sélection du genre (si tu l'utilises) */
+.p-gender-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--p-border);
+}
+
+/* Carte de droite : raccourcis */
+.p-profile-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.p-side-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.p-side-actions {
+  display: grid;
+  gap: 10px;
+}
+
+/* Encadré conseil */
+.p-tip {
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 14px;
+
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+
+  color: var(--p-text);
+  font-size: 13px;
+}
+
+*{ box-sizing: border-box; }
+html, body { height: 100%; }
+body{
+  margin: 0;
+  background: radial-gradient(900px 480px at 15% 10%, rgba(37,99,235,0.12), transparent 60%),
+              radial-gradient(760px 420px at 85% 20%, rgba(14,165,233,0.10), transparent 60%),
+              radial-gradient(900px 520px at 50% 95%, rgba(22,163,74,0.08), transparent 60%),
+              var(--p-bg);
+  color: var(--p-text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* =========================
+   Layout
+   ========================= */
+.malade-shell{
+  min-height: 100vh;
+  display: flex;
+}
+
+.malade-sidebar{
+  width: 300px;
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  border-right: 1px solid var(--p-border);
+  box-shadow: 8px 0 24px rgba(2, 6, 23, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.malade-main{
+  flex: 1;
+  padding: 22px;
+}
+
+.malade-container{
+  max-width: 1120px;
+}
+
+/* =========================
+   Brand (haut sidebar)
+   ========================= */
+.malade-brand{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--p-radius);
+  background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(255,255,255,1));
+  border: 1px solid var(--p-border);
+}
+
+.malade-brand-badge{
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--p-primary), var(--p-primary-2));
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37,99,235,0.22);
+}
+
+.malade-brand-title{
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.malade-brand-title strong{ font-size: 14px; }
+.malade-brand-title span{ font-size: 12px; color: var(--p-muted); }
+
+/* =========================
+   Nav links
+   ========================= */
+.malade-nav{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.malade-link{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--p-text);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.malade-link:hover{
+  background: rgba(37,99,235,0.06);
+  border-color: rgba(37,99,235,0.18);
+  transform: translateY(-1px);
+}
+
+.malade-link.active{
+  background: linear-gradient(135deg, rgba(37,99,235,0.14), rgba(14,165,233,0.08));
+  border-color: rgba(37,99,235,0.22);
+  box-shadow: 0 10px 16px rgba(2, 6, 23, 0.04);
+  position: relative;
+}
+.malade-link.active::before{
+  content: "";
+  position: absolute;
+  left: 10px;
+  width: 4px;
+  height: 22px;
+  border-radius: 99px;
+  background: linear-gradient(180deg, var(--p-primary), var(--p-info));
+}
+
+.malade-link svg{ font-size: 18px; opacity: 0.9; }
+
+/* =========================
+   Sidebar footer
+   ========================= */
+.malade-sidebar-footer{
+  margin-top: auto;
+  padding: 12px;
+  border-radius: var(--p-radius);
+  background: var(--p-surface2);
+  border: 1px solid var(--p-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.malade-user{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.malade-user strong{ font-size: 13px; }
+.malade-user span{ font-size: 12px; color: var(--p-muted); }
+
+.malade-logout{
+  border: 1px solid rgba(239,68,68,0.22);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(239,68,68,0.10);
+  color: #7f1d1d;
+  cursor: pointer;
+  transition: transform .12s ease, background .12s ease;
+}
+.malade-logout:hover{
+  transform: translateY(-1px);
+  background: rgba(239,68,68,0.14);
+}
+.malade-brand-logo{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--p-border);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.08);
+  background: #fff;
+}
+
+
+/* =========================
+   Topbar
+   ========================= */
+.malade-topbar{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.malade-title h1{
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+}
+.malade-title p{
+  margin: 6px 0 0 0;
+  color: var(--p-muted);
+  font-size: 13px;
+}
+
+/* =========================
+   Cards / Grids
+   ========================= */
+.m-card{
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
+  padding: 18px;
+  box-shadow: var(--p-shadow2);
+}
+
+.m-grid-3{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 14px;
+}
+
+.m-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+
+.m-row{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.m-h3{
+  margin: 0 0 6px 0;
+  font-size: 15px;
+}
+
+@media (max-width: 980px){
+  .malade-sidebar{ display:none; }
+  .m-grid-3, .m-grid{ grid-template-columns: 1fr; }
+  .malade-main{ padding: 16px; }
+}
+
+/* =========================
+   Stats
+   ========================= */
+.m-stat{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.m-stat .label{
+  color: var(--p-muted);
+  font-size: 13px;
+}
+.m-stat .value{
+  font-size: 30px;
+  font-weight: 900;
+}
+
+/* =========================
+   Badges (Historique)
+   ========================= */
+.m-badge{
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--p-border);
+  background: #fff;
+  white-space: nowrap;
+}
+
+.m-badge--warn{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.14); color: #92400e; }
+.m-badge--info{ border-color: rgba(14,165,233,0.35); background: rgba(14,165,233,0.14); color: #075985; }
+.m-badge--ok{ border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.14); color: #166534; }
+
+/* =========================
+   Chips (Home)
+   ========================= */
+.m-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--p-border);
+  background: var(--p-surface2);
+}
+.m-chip.wait{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.12); }
+.m-chip.done{ border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.12); }
+.m-chip.run{ border-color: rgba(37,99,235,0.35); background: rgba(37,99,235,0.10); }
+
+/* =========================
+   Forms
+   ========================= */
+.m-form{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+@media (max-width: 720px){
+  .m-form{ grid-template-columns: 1fr; }
+}
+
+.m-field{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.m-field label{
+  font-size: 13px;
+  color: var(--p-muted);
+}
+
+.m-field input,
+.m-field select{
+  border-radius: 14px;
+  padding: 12px 12px;
+  border: 1px solid var(--p-border);
+  background: #fff;
+  color: var(--p-text);
+  outline: none;
+  transition: box-shadow .12s ease, border-color .12s ease;
+}
+.m-field input:focus,
+.m-field select:focus{
+  border-color: rgba(37,99,235,0.55);
+  box-shadow: var(--p-ring);
+}
+
+/* =========================
+   Buttons (compat : .primary et .m-btn--primary)
+   ========================= */
+.m-actions{
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.m-btn{
+  border: 1px solid var(--p-border);
+  background: var(--p-surface2);
+  color: var(--p-text);
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.m-btn:hover{
+  transform: translateY(-1px);
+  background: #fff;
+  border-color: rgba(37,99,235,0.22);
+}
+
+/* Ancienne syntaxe */
+.m-btn.primary{ background: linear-gradient(135deg, rgba(37,99,235,0.95), rgba(96,165,250,0.85)); color: #fff; border-color: rgba(37,99,235,0.45); }
+.m-btn.danger{ background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.22); color: #7f1d1d; }
+.m-btn.warning{ background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.24); color: #92400e; }
+.m-btn.ghost{ background: transparent; }
+
+/* Nouvelle syntaxe (utilisée dans Historique) */
+.m-btn--primary{ background: linear-gradient(135deg, rgba(37,99,235,0.95), rgba(96,165,250,0.85)); color: #fff; border-color: rgba(37,99,235,0.45); }
+.m-btn--secondary{ background: rgba(14,165,233,0.10); border-color: rgba(14,165,233,0.22); color: #075985; }
+.m-btn--danger{ background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.22); color: #7f1d1d; }
+.m-btn--ghost{ background: transparent; }
+
+/* =========================
+   Alerts
+   ========================= */
+.m-alert{
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--p-border);
+  background: #fff;
+  margin-bottom: 12px;
+  box-shadow: var(--p-shadow2);
+}
+.m-alert--danger{
+  border-color: rgba(239,68,68,0.25);
+  background: rgba(239,68,68,0.08);
+  color: #7f1d1d;
+}
+
+/* =========================
+   Text helpers
+   ========================= */
+.m-muted{ color: var(--p-muted); font-size: 13px; margin: 0; }
