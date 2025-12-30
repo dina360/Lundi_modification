@@ -1,3 +1,4 @@
+// frontend/src/App.js
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { io } from "socket.io-client";
@@ -11,6 +12,9 @@ import Home from "./Home";
 import RendezVousPage from "./RendezVousPage";
 import DossierPatient from "./DossierPatient";
 import StaffPage from "./staff/StaffPage";
+
+// ✅ IA
+import PredictionPatient from "./PredictionPatient";
 
 // Espace Médecin
 import MedecinLayout from "./medecin/MedecinLayout";
@@ -46,7 +50,6 @@ const SecretaireHome = () => (
 );
 
 function App() {
-
   // ============================
   // Socket.io (connexion globale)
   // ============================
@@ -71,7 +74,6 @@ function App() {
   return (
     <div className="app-container">
       <Routes>
-
         {/* ================= PUBLIC ================= */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -114,7 +116,7 @@ function App() {
           }
         />
 
-        {/* ================= MALADE ================= */}
+        {/* ================= MALADE (PATIENT) ================= */}
         <Route
           path="/malade/home"
           element={
@@ -132,14 +134,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-<Route
-  path="/malade/rendezvous/modifier/:rdvId"
-  element={
-    <ProtectedRoute roles={["patient"]}>
-      <MaladeHistoriqueRdv />
-    </ProtectedRoute>
-  }
-/>
+
+        <Route
+          path="/malade/rendezvous/modifier/:rdvId"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/malade/rendezvous/historique"
           element={
@@ -154,6 +158,26 @@ function App() {
           element={
             <ProtectedRoute roles={["patient"]}>
               <MaladeProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================= IA PREDICTION (PATIENT) ================= */}
+        <Route
+          path="/malade/prediction"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <PredictionPatient />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Compat si ancien bouton utilise /patient/prediction */}
+        <Route
+          path="/patient/prediction"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <PredictionPatient />
             </ProtectedRoute>
           }
         />
@@ -247,7 +271,6 @@ function App() {
 
         {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </div>
   );

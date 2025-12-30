@@ -1,0 +1,289 @@
+/* Layout général */
+.prediction-page {
+  padding: 2rem 3rem;
+  background: #f4f6fb;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.prediction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.prediction-header h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #1e3150;
+  margin-bottom: 0.25rem;
+}
+
+.prediction-header p {
+  margin: 0;
+  color: #5c6f90;
+  font-size: 0.95rem;
+}
+
+/* Deux colonnes */
+.prediction-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr);
+  gap: 1.75rem;
+}
+
+@media (max-width: 992px) {
+  .prediction-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cartes */
+.prediction-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.6rem 1.8rem;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.prediction-card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+/* Upload */
+.upload-help {
+  margin-bottom: 1.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.file-input-label {
+  display: block;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  border: 1px dashed #94a3b8;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.file-input-label:hover {
+  border-color: #2563eb;
+  background: #eef2ff;
+}
+
+.file-input-label input[type="file"] {
+  margin-top: 0.4rem;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.file-input-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+.file-preview {
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.file-preview span {
+  font-weight: 600;
+}
+
+.btn-analyze {
+  margin-top: 0.3rem;
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+  transition: transform 0.1s, box-shadow 0.1s, opacity 0.2s;
+}
+
+.btn-analyze:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.45);
+}
+
+.btn-analyze:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* Alertes */
+.pred-alert {
+  margin-top: 0.4rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.87rem;
+}
+
+.pred-alert-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Bloc aide */
+.prediction-hint {
+  margin-top: 1.7rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.prediction-hint h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.6rem;
+}
+
+.prediction-hint ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.prediction-hint li {
+  margin-bottom: 0.15rem;
+}
+
+/* Résultats */
+.result-card {
+  position: relative;
+}
+
+.result-placeholder {
+  padding: 1.2rem;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  color: #6b7280;
+  font-size: 0.92rem;
+}
+
+.pred-main-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.4rem;
+}
+
+.pred-main-label {
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.pred-main-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid rgba(129, 140, 248, 0.6);
+}
+
+.pred-section {
+  margin-top: 1.2rem;
+}
+
+.pred-section h3 {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.6rem;
+}
+
+/* Probabilités */
+.pred-proba-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pred-proba-row {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem 0.6rem;
+}
+
+.pred-proba-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.pred-proba-disease {
+  font-size: 0.9rem;
+  color: #111827;
+  font-weight: 500;
+}
+
+.pred-proba-percent {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+.pred-proba-bar-container {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.pred-proba-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transition: width 0.6s ease;
+}
+
+/* Recommandations */
+.pred-reco-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pred-reco-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.pred-reco-bullet {
+  color: #4f46e5;
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+}

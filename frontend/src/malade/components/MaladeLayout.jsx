@@ -77,11 +77,12 @@ React.useEffect(() => {
           </NavLink>
 
           <NavLink
-            to="/malade/ia"
+            to="/malade/prediction"
             className={({ isActive }) => `malade-link ${isActive ? "active" : ""}`}
           >
             <FiCpu /> Prédiction
           </NavLink>
+
 
           <NavLink
             to="/malade/profile"

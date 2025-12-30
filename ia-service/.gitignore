@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pkl
+*.dll
+*.so
+*.pyc
+*.log
+
+# Python
+.venv/
+__pycache__/
+*.pyc
