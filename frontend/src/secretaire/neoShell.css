@@ -1,0 +1,120 @@
+/* src/styles/neoShell.css */
+
+/* Variables : mets-les ici si tu veux qu'elles soient communes */
+:root{
+  --neo-blue-900:#1e40af;
+  --neo-blue-850:#1e40af;
+  --neo-blue-700:#1e40af;
+  --neo-blue-600:#1e40af;
+
+  --neo-bg:#eef3fb;
+  --neo-card:#ffffff;
+  --neo-text:#0b1b3a;
+  --neo-muted:rgba(11,27,58,.65);
+
+  --neo-shadow:0 18px 40px rgba(15,43,122,.12);
+  --neo-shadow-soft:0 10px 24px rgba(15,43,122,.12);
+
+  --neo-radius-xl:22px;
+}
+
+/* IMPORTANT: évite de mettre html, body ici (ça impacte toute l'app) */
+
+/* Layout */
+.neo-layout{
+  display:flex;
+  min-height:100vh;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--neo-bg);
+}
+.neo-layout-tight{ gap:0; }
+
+/* Sidebar */
+.neo-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #1e40af, #1e40af);
+  color: #ffffff;
+  padding: 1.4rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;               /* ✅ sidebar full height */
+  position: sticky;            /* optionnel si layout scroll */
+  top: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.neo-brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 10px;
+  border-radius:16px;
+  cursor:pointer;
+  margin-bottom:14px;
+}
+.neo-brand:hover{ background:rgba(255,255,255,.06); }
+
+.neo-brand-img{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  object-fit:cover;
+  background:#fff;
+  box-shadow:0 10px 20px rgba(0,0,0,.18);
+}
+
+.neo-brand-txt{ display:flex; flex-direction:column; line-height:1.1; }
+.neo-brand-name{ font-weight:800; font-size:1.06rem; }
+.neo-brand-sub{ font-size:.78rem; opacity:.8; margin-top:2px; }
+
+.neo-nav-section{
+  margin:10px 10px 8px;
+  font-size:.72rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-weight:900;
+  color:rgba(255,255,255,.55);
+}
+
+.neo-nav{ display:flex; flex-direction:column; gap:8px; flex:1; }
+
+.neo-nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  font-weight:750;
+  font-size:.95rem;
+  color:rgba(255,255,255,.92);
+  transition:background .15s ease, transform .12s ease, opacity .15s ease;
+}
+.neo-nav-item:hover{
+  background:rgba(255,255,255,.10);
+  transform:translateX(2px);
+  color:#fff;
+}
+.neo-nav-item.active{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.14);
+}
+.neo-nav-ico{ font-size:1.14rem; color:#c7d2fe; flex-shrink:0; }
+.neo-nav-item:hover .neo-nav-ico,
+.neo-nav-item.active .neo-nav-ico{ color:#fff; }
+
+.neo-nav-spacer{ flex:1; }
+.neo-nav-item.logout{ background:rgba(248,113,113,.14); }
+.neo-nav-item.logout:hover{ background:rgba(248,113,113,.22); }
+
+/* Main container */
+.neo-main{
+  flex:1;
+  min-width:0;
+  background: var(--neo-bg);
+}
+.neo-main-tight{ padding:0; margin:0; }
+
+@media (max-width:720px){
+  .neo-sidebar{ width:230px; }
+}

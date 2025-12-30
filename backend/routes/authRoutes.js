@@ -127,44 +127,40 @@ router.post(
 /* ---------------------------------------------------
    3) LOGIN (tous rôles) 
 ----------------------------------------------------*/
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
+// /api/auth/login
+router.post('/login', async (req, res) => {
   try {
+    const { email, password } = req.body;
+
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Utilisateur non trouvé" });
+      return res.status(400).json({ message: 'Identifiants invalides.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Mot de passe incorrect" });
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(400).json({ message: 'Identifiants invalides.' });
     }
 
-    // Générer un token JWT
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = generateToken(user);
 
-    // Renvoyer le token et les informations de l'utilisateur
     res.json({
+      message: 'Connexion réussie.',
       token,
       user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role, // Inclure le rôle de l'utilisateur
-      },
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      specialty: user.specialty,
+      photo: user.photo, // ✅ Ajoute cette ligne
+    },
     });
-  } catch (err) {
-    console.error("Erreur de connexion:", err);
-    res.status(500).json({ message: "Erreur serveur" });
+  } catch (error) {
+    console.error('Erreur login:', error);
+    res.status(500).json({ message: 'Erreur serveur.' });
   }
 });
-
-
 
 /* ---------------------------------------------------
    4) /me → infos utilisateur connecté

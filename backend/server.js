@@ -2,13 +2,12 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
 const cors = require("cors");
-const http = require("http");
 const path = require("path");
-const socketIo = require("socket.io");
 
-// Routes
+// ============================
+// Imports des routes
+// ============================
 const authRoutes = require("./routes/authRoutes");
 const patientRoutes = require("./routes/patientRoutes");
 const dashboardRoutes = require("./routes/dashboard");
@@ -16,81 +15,60 @@ const dashboardAdvanced = require("./routes/dashboardAdvanced");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const medecinRoutes = require("./routes/medecinRoutes");
 const consultationRoutes = require("./routes/consultationRoutes");
-const chatRoutes = require("./routes/chatRoutes");
-const disponibilitesRoutes = require("./routes/disponibilitesRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const roomRoutes = require("./routes/roomRoutes");
-const maladeRdvRoutes = require("./routes/maladeRdvRoutes");
 
-// ✅ IA
-const predictionRoutes = require("./routes/prediction");
+// ✅ NOUVEAU: Dashboard Secretaire
+const secretaireRoutes = require("./routes/secretaireRoutes");
 
+// ============================
 // Middlewares
+// ============================
 const authMiddleware = require("./middleware/authMiddleware");
 const verifyRole = require("./middleware/verifyRole");
 
-// ============================
-// Initialisation serveur
-// ============================
 const app = express();
-const server = http.createServer(app);
-
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-  },
-});
-
-// Rendre io accessible partout (routes chat, etc.)
-global.io = io;
-
 const port = process.env.PORT || 5000;
 
-/* =========================
-   Middlewares globaux
-========================= */
-app.use(bodyParser.json());
-app.use(cors());
+// ============================
+// Middlewares globaux
+// ============================
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // ✅ utile si form-data sans fichier
 
-// uploads statiques
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
+// Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Log des requêtes
+// Logs
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-/* =========================
-   Connexion MongoDB
-========================= */
-const dbURL = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/hospital";
-
+// ============================
+// MongoDB
+// ============================
 mongoose
-  .connect(dbURL)
-  .then(() => console.log("✅ Connexion MongoDB réussie"))
-  .catch((err) => console.error("❌ Erreur MongoDB :", err));
+  .connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/hopital")
+  .then(() => console.log("✅ MongoDB connecté"))
+  .catch((err) => console.error("❌ Erreur MongoDB:", err));
 
-/* =========================
-   Routes PUBLIQUES
-========================= */
+// ============================
+// ROUTES
+// ============================
+
+// 🔓 Auth (public)
 app.use("/api/auth", authRoutes);
 
-/* =========================
-   Routes PROTÉGÉES
-========================= */
-
-// Malade RDV (patient)
-app.use(
-  "/api/malade/rdv",
-  authMiddleware,
-  verifyRole(["patient"]),
-  maladeRdvRoutes
-);
-
-// Patients (admin/medecin/secretaire)
+// 🔒 Patients (protégé)  ✅ ON GARDE UNIQUEMENT CETTE ROUTE
 app.use(
   "/api/patients",
   authMiddleware,
@@ -98,10 +76,7 @@ app.use(
   patientRoutes
 );
 
-// Personnel (admin)
-app.use("/api/staff", authMiddleware, verifyRole(["admin"]), staffRoutes);
-
-// Appointments (admin/medecin/secretaire)
+// 📅 Appointments
 app.use(
   "/api/appointments",
   authMiddleware,
@@ -109,21 +84,7 @@ app.use(
   appointmentRoutes
 );
 
-// Doctors (admin)
-app.use("/api/doctors", authMiddleware, verifyRole(["admin"]), doctorRoutes);
-
-// Salles (admin)
-app.use("/api/salles", authMiddleware, verifyRole(["admin"]), roomRoutes);
-
-// Dashboard avancé
-app.use(
-  "/api/dashboard/advanced",
-  authMiddleware,
-  verifyRole(["admin", "medecin", "secretaire"]),
-  dashboardAdvanced
-);
-
-// Dashboard simple
+// 📊 Dashboard (général)
 app.use(
   "/api/dashboard",
   authMiddleware,
@@ -131,7 +92,22 @@ app.use(
   dashboardRoutes
 );
 
-// Médecins (admin/medecin)
+app.use(
+  "/api/dashboard/advanced",
+  authMiddleware,
+  verifyRole(["admin", "medecin", "secretaire"]),
+  dashboardAdvanced
+);
+
+// ✅ NOUVEAU: Dashboard Secretaire (pour ton frontend SecretaireHome.js)
+app.use(
+  "/api/secretaire",
+  authMiddleware,
+  verifyRole(["admin", "medecin", "secretaire"]),
+  secretaireRoutes
+);
+
+// 🧑‍⚕ Medecins
 app.use(
   "/api/medecins",
   authMiddleware,
@@ -139,7 +115,7 @@ app.use(
   medecinRoutes
 );
 
-// Consultations + disponibilités (medecin)
+// 📄 Consultations
 app.use(
   "/api/consultations",
   authMiddleware,
@@ -147,59 +123,23 @@ app.use(
   consultationRoutes
 );
 
-app.use(
-  "/api/disponibilites",
-  authMiddleware,
-  verifyRole(["medecin"]),
-  disponibilitesRoutes
-);
+// staff/doctors
+app.use("/api/staff", staffRoutes);
+app.use("/api/doctors", authMiddleware, verifyRole(["admin"]), doctorRoutes);
 
-// Chat (medecin)
-app.use("/api/chat", authMiddleware, verifyRole(["medecin"]), chatRoutes);
+// ✅ Salles
+app.use("/api/salles", roomRoutes);
 
-// ✅ IA (patient)
-app.use(
-  "/api/prediction",
-  authMiddleware,
-  verifyRole(["patient"]),
-  predictionRoutes
-);
-
-/* =========================
-   Route 404
-========================= */
+// ============================
+// 404
+// ============================
 app.use((req, res) => {
-  res.status(404).json({ error: "Route non trouvée" });
+  res.status(404).json({ error: "Route introuvable" });
 });
 
-/* =========================
-   Socket.io
-========================= */
-io.use((socket, next) => {
-  // Ici tu peux vérifier le JWT si besoin
-  next();
-});
-
-io.on("connection", (socket) => {
-  console.log("Un utilisateur s'est connecté au chat");
-
-  socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    console.log(`📌 Socket ${socket.id} a rejoint le salon ${roomId}`);
-  });
-
-  socket.on("sendMessage", (data) => {
-    io.to(data.roomId).emit("newMessage", data);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Un utilisateur s'est déconnecté du chat");
-  });
-});
-
-/* =========================
-   Démarrage serveur
-========================= */
-server.listen(port, () =>
-  console.log(`🚀 Serveur démarré sur http://localhost:${port}`)
+// ============================
+// START SERVER
+// ============================
+app.listen(port, () =>
+  console.log(`🚀 Serveur lancé : http://localhost:${port}`)
 );

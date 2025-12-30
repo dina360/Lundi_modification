@@ -30,12 +30,10 @@ function LoginPage() {
       const { token, user } = res.data;
 
       // 🔐 Sauvegarde du token et des infos utilisateur
-      
-      localStorage.setItem("authToken", res.data.token);
-localStorage.setItem("userRole", res.data.user.role);
-localStorage.setItem("userId", res.data.user._id);
-localStorage.setItem("userName", res.data.user.name);
-localStorage.setItem("userEmail", res.data.user.email);
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userName', user.name || '');
+      localStorage.setItem('userEmail', user.email || '');
 
       // 🔹 Si médecin, on stocke ses infos complètes
       if (user.role === 'medecin') {
@@ -47,7 +45,7 @@ localStorage.setItem("userEmail", res.data.user.email);
         medecin: '/medecin/home',
         admin: '/dashboard',
         secretaire: '/secretaire/home',
-        patient: '/malade/home',
+        patient: '/patient/home',
       };
 
       const route = roleRoutes[user.role] || '/';

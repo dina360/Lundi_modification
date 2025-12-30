@@ -1,0 +1,252 @@
+/* PAGE GLOBALE */
+.rdv-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: radial-gradient(circle at top left, #e0f2fe, #f8fafc 45%, #e5e7eb);
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* HEADER */
+.rdv-header {
+  max-width: 1300px;
+  margin: 0 auto 1.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.rdv-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.rdv-title-icon {
+  font-size: 2.1rem;
+  color: #2563eb;
+}
+
+.rdv-subtitle {
+  margin-top: 0.3rem;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+/* LAYOUT PRINCIPAL */
+.rdv-layout {
+  max-width: 1300px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2.1fr 1.3fr;
+  gap: 1.5rem;
+}
+
+/* CARTES GÉNÉRIQUES */
+.rdv-calendar-card,
+.rdv-form-card,
+.rdv-list-card {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  padding: 1.5rem 1.7rem;
+}
+
+/* Header de carte */
+.rdv-card-header h2,
+.rdv-card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.rdv-card-caption {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+/* CALENDRIER */
+.rdv-calendar-wrapper {
+  margin-top: 1rem;
+}
+
+.rdv-loading {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* SIDEBAR DROITE */
+.rdv-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* FORMULAIRE NOUVEAU RDV */
+.rdv-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rdv-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rdv-form-row {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 0.9rem;
+}
+
+.rdv-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rdv-label-icon {
+  color: #2563eb;
+}
+
+/* Inputs */
+.rdv-input,
+.rdv-select,
+.rdv-textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 0.9rem;
+  transition: 0.15s;
+}
+
+.rdv-input:focus,
+.rdv-select:focus,
+.rdv-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.rdv-textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+/* Hint date choisie */
+.rdv-hint {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 0.15rem;
+}
+
+/* Bouton submit */
+.rdv-submit-btn {
+  margin-top: 0.4rem;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(to right, #2563eb, #4f46e5);
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.35);
+  transition: 0.15s;
+}
+
+.rdv-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.45);
+}
+
+.rdv-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.rdv-submit-icon {
+  font-size: 1.05rem;
+}
+
+/* LISTE PROCHAINS RDV */
+.rdv-list {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rdv-list-item {
+  padding: 0.65rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.rdv-list-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.rdv-list-date {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.rdv-list-reason {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.rdv-empty {
+  margin-top: 0.8rem;
+  font-size: 0.86rem;
+  color: #9ca3af;
+}
+
+.inline-icon {
+  vertical-align: middle;
+  margin-right: 0.3rem;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .rdv-page {
+    padding: 1rem;
+  }
+
+  .rdv-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rdv-form-row {
+    grid-template-columns: 1fr;
+  }
+}

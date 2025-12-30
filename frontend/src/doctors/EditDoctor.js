@@ -1,534 +1,308 @@
+// src/doctors/EditDoctor.js
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getDoctorById, updateDoctor } from "./doctorService";
-import { FiCamera, FiTrash2, FiSave, FiX, FiPlus, FiClock, FiCalendar } from "react-icons/fi";
-import Sidebar from "../Sidebar"; // Import du Sidebar
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiActivity as FiStethoscope,
+  FiFileText,
+  FiCamera,
+  FiArrowLeft,
+  FiEdit,
+} from "react-icons/fi";
 
-const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+import Sidebar from "../Sidebar";
 
-export default function EditDoctor() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({
-    name: "", 
-    specialty: "", 
-    email: "", 
-    phone: "", 
-    notes: "", 
+const EditDoctor = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [doctor, setDoctor] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    specialty: "",
+    email: "",
+    phone: "",
+    notes: "",
     status: "Disponible",
-    schedule: DAYS.map(d => ({ day: d, slots: [] })), 
-    absences: []
+    photo: null,
   });
-  const [photo, setPhoto] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [serverPhoto, setServerPhoto] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Gérer l'état du Sidebar
 
-  const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5000";
-  const displayedPhoto = photoPreview || (serverPhoto ? `${API_BASE}${serverPhoto}` : null);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const token = localStorage.getItem("authToken");
 
-  // Charger les données du médecin
   useEffect(() => {
-    const fetchDoctor = async () => {
+    const loadDoctor = async () => {
       try {
-        setLoading(true);
-        const data = await getDoctorById(id);
-        
-        // Normaliser le schedule
-        const normalizeSchedule = (raw) => {
-          if (!raw) return DAYS.map(d => ({ day: d, slots: [] }));
-          if (typeof raw === "string") {
-            try { raw = JSON.parse(raw); } catch { return DAYS.map(d => ({ day: d, slots: [] })); }
-          }
-          if (Array.isArray(raw)) {
-            return DAYS.map((d, i) => {
-              const found = raw.find(r => (r.day || "").toLowerCase() === d.toLowerCase()) || raw[i];
-              return found ? { 
-                day: found.day || d, 
-                slots: Array.isArray(found.slots) ? found.slots.map(slot => ({
-                  start: slot.start || "",
-                  end: slot.end || ""
-                })) : [] 
-              } : { day: d, slots: [] };
-            });
-          }
-          return DAYS.map(d => ({ day: d, slots: [] }));
-        };
-
-        const schedule = normalizeSchedule(data.schedule);
-        const absences = Array.isArray(data.absences) ? data.absences.map(abs => ({
-          from: abs.from ? abs.from.split('T')[0] : "",
-          to: abs.to ? abs.to.split('T')[0] : "",
-          reason: abs.reason || ""
-        })) : [];
-
-        setForm({
-          name: data.name || "",
-          specialty: data.specialty || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          notes: data.notes || "",
-          status: data.status || "Disponible",
-          schedule: schedule,
-          absences: absences
+        const res = await axios.get(`http://localhost:5000/api/doctors/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        if (data.photo) {
-          setServerPhoto(data.photo);
-        }
+        setDoctor(res.data);
+        setFormData({
+          name: res.data.name || "",
+          specialty: res.data.specialty || "",
+          email: res.data.email || "",
+          phone: res.data.phone || "",
+          notes: res.data.notes || "",
+          status: res.data.status || "Disponible",
+          photo: null,
+        });
       } catch (err) {
         console.error("Erreur chargement médecin:", err);
-        alert("Impossible de charger les données du médecin");
-        navigate("/docteurs");
-      } finally {
-        setLoading(false);
+        setError("Impossible de charger ce médecin.");
       }
     };
+    if (token) loadDoctor();
+  }, [id, token]);
 
-    fetchDoctor();
-  }, [id, navigate]);
-
-  const handleFile = (e) => {
-    const file = e.target.files?.[0] || null;
-    setPhoto(file);
-    if (file) {
-      setPhotoPreview(URL.createObjectURL(file));
-    } else {
-      setPhotoPreview(null);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!form.name.trim()) newErrors.name = "Le nom est requis";
-    if (!form.specialty.trim()) newErrors.specialty = "La spécialité est requise";
-    if (!form.email.trim()) {
-      newErrors.email = "L'email est requis";
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      newErrors.email = "L'email est invalide";
-    }
-
-    // Validation des créneaux horaires
-    form.schedule.forEach((day, dayIndex) => {
-      day.slots.forEach((slot, slotIndex) => {
-        if (slot.start && slot.end && slot.start >= slot.end) {
-          newErrors[`slot-${dayIndex}-${slotIndex}`] = "L'heure de fin doit être après l'heure de début";
-        }
-      });
-    });
-
-    // Validation des absences
-    form.absences.forEach((absence, index) => {
-      if (absence.from && absence.to && new Date(absence.from) > new Date(absence.to)) {
-        newErrors[`absence-${index}`] = "La date de fin doit être après la date de début";
-      }
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handlePhotoChange = (e) => {
+    setFormData((prev) => ({ ...prev, photo: e.target.files[0] }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      alert("Veuillez corriger les erreurs dans le formulaire");
-      return;
-    }
+    setError("");
 
-    if (!form.name || !form.specialty || !form.email) {
-      return alert("Nom, spécialité et email sont requis");
+    const payload = new FormData();
+    payload.append("name", formData.name);
+    payload.append("specialty", formData.specialty);
+    payload.append("email", formData.email);
+    payload.append("phone", formData.phone);
+    payload.append("notes", formData.notes);
+    payload.append("status", formData.status);
+    if (formData.photo) {
+      payload.append("photo", formData.photo);
     }
 
     try {
-      setSaving(true);
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("specialty", form.specialty);
-      formData.append("email", form.email);
-      formData.append("phone", form.phone || "");
-      formData.append("notes", form.notes || "");
-      formData.append("status", form.status || "Disponible");
-      formData.append("schedule", JSON.stringify(form.schedule));
-      formData.append("absences", JSON.stringify(form.absences));
-      
-      if (photo) {
-        formData.append("photo", photo);
-      }
-
-      await updateDoctor(id, formData);
-      alert("Médecin modifié avec succès !");
-      navigate(`/docteurs/${id}`);
+      await axios.put(`http://localhost:5000/api/doctors/${id}`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      navigate("/docteurs");
     } catch (err) {
-      console.error("Erreur modification:", err);
-      alert(err?.response?.data?.message || "Erreur lors de la modification du médecin");
-    } finally {
-      setSaving(false);
+      console.error("Erreur maj médecin:", err);
+      setError(err.response?.data?.message || "Erreur lors de la mise à jour.");
     }
   };
 
-  const addSlot = (dayIndex) => {
-    const updatedSchedule = [...form.schedule];
-    updatedSchedule[dayIndex].slots.push({ start: "", end: "" });
-    setForm(prev => ({ ...prev, schedule: updatedSchedule }));
-  };
-
-  const updateSlot = (dayIndex, slotIndex, field, value) => {
-    const updatedSchedule = [...form.schedule];
-    updatedSchedule[dayIndex].slots[slotIndex][field] = value;
-    setForm(prev => ({ ...prev, schedule: updatedSchedule }));
-  };
-
-  const removeSlot = (dayIndex, slotIndex) => {
-    const updatedSchedule = [...form.schedule];
-    updatedSchedule[dayIndex].slots.splice(slotIndex, 1);
-    setForm(prev => ({ ...prev, schedule: updatedSchedule }));
-  };
-
-  const addAbsence = () => {
-    setForm(prev => ({
-      ...prev,
-      absences: [...prev.absences, { from: "", to: "", reason: "" }]
-    }));
-  };
-
-  const updateAbsence = (index, field, value) => {
-    const updatedAbsences = [...form.absences];
-    updatedAbsences[index][field] = value;
-    setForm(prev => ({ ...prev, absences: updatedAbsences }));
-  };
-
-  const removeAbsence = (index) => {
-    setForm(prev => ({
-      ...prev,
-      absences: prev.absences.filter((_, i) => i !== index)
-    }));
-  };
-
-  const setField = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    // Effacer l'erreur du champ quand l'utilisateur modifie
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  if (loading) {
+  if (!doctor) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des données du médecin...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          active="docteurs"
+        />
+        <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"} flex items-center justify-center`}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-900 mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold text-gray-800">Chargement du médecin...</h3>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
-        active="docteurs" // Mettre l'onglet actif à "docteurs"
+        active="docteurs"
       />
 
-      <div className={`transition-all duration-300 ${sidebarOpen ? "ml-72" : "ml-20"} w-full`}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <button 
-                onClick={() => navigate(`/docteurs/${id}`)}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-4 transition-colors"
+      <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"}`}>
+        {/* En-tête Royal */}
+        <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => navigate("/docteurs")}
+                className="flex items-center space-x-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border border-white/30"
               >
-                <FiX className="text-lg" />
-                Retour au profil
+                <FiArrowLeft className="text-lg" />
+                <span>Retour</span>
               </button>
-              <h1 className="text-3xl font-bold text-gray-800">Modifier le médecin</h1>
-              <p className="text-gray-600 mt-2">Mettez à jour les informations du profil médical</p>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
+                  <FiEdit className="text-2xl text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">Modifier le Médecin</h1>
+                  <p className="text-blue-100 mt-2 text-lg">
+                    Mise à jour des informations du Dr. {doctor.name}
+                  </p>
+                </div>
+              </div>
             </div>
+            <div className="text-right">
+              <div className="text-blue-200 text-sm">Hôpital NeoHealth</div>
+              <div className="text-white font-semibold">Édition de Profil</div>
+            </div>
+          </div>
+        </header>
 
+        {/* Formulaire */}
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Section Informations de base */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                  <div className="w-2 h-6 bg-indigo-600 rounded-full"></div>
-                  Informations personnelles
-                </h2>
+              {error && (
+                <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl font-medium">
+                  {error}
+                </div>
+              )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Photo */}
-                  <div className="lg:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Photo de profil</label>
-                    <div className="relative group">
-                      <div className="w-40 h-40 rounded-2xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center">
-                        {displayedPhoto ? (
-                          <img src={displayedPhoto} alt={form.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="text-center p-4">
-                            <FiCamera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">Ajouter une photo</p>
-                          </div>
-                        )}
-                      </div>
-                      <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all cursor-pointer rounded-2xl">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleFile}
-                          className="hidden" 
-                        />
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <FiCamera className="w-6 h-6 text-white" />
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Informations */}
-                  <div className="lg:col-span-2 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Nom complet *
-                        </label>
-                        <input
-                          type="text"
-                          value={form.name}
-                          onChange={(e) => setField("name", e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all ${
-                            errors.name ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="Dr. Jean Dupont"
-                        />
-                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Spécialité *
-                        </label>
-                        <select
-                          value={form.specialty}
-                          onChange={(e) => setField("specialty", e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all ${
-                            errors.specialty ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        >
-                          <option value="">Choisir une spécialité</option>
-                          <option value="medecin_generaliste">Médecin Généraliste</option>
-                          <option value="cardiologue">Cardiologue</option>
-                          <option value="pediatre">Pédiatre</option>
-                          <option value="chirurgien">Chirurgien</option>
-                          <option value="radiologue">Radiologue</option>
-                        </select>
-                        {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Email *
-                        </label>
-                        <input
-                          type="email"
-                          value={form.email}
-                          onChange={(e) => setField("email", e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all ${
-                            errors.email ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="jean.dupont@hopital.com"
-                        />
-                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Téléphone
-                        </label>
-                        <input
-                          type="text"
-                          value={form.phone}
-                          onChange={(e) => setField("phone", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                          placeholder="+33 1 23 45 67 89"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                      <select
-                        value={form.status}
-                        onChange={(e) => setField("status", e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                      >
-                        <option value="Disponible">🟢 Disponible</option>
-                        <option value="Occupé">🟡 Occupé</option>
-                        <option value="Absent">🔴 Absent</option>
-                        <option value="En congé">🟠 En congé</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Biographie / Notes</label>
-                      <textarea
-                        value={form.notes}
-                        onChange={(e) => setField("notes", e.target.value)}
-                        rows={4}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        placeholder="Diplômes, spécialités, expériences..."
-                      />
-                    </div>
+              {/* Aperçu photo actuelle */}
+              {doctor.photo && (
+                <div className="flex items-center space-x-6 p-6 bg-blue-50 rounded-xl border-2 border-blue-100">
+                  <img
+                    src={`http://localhost:5000${doctor.photo}`}
+                    alt={doctor.name}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-lg"
+                  />
+                  <div>
+                    <p className="text-blue-900 font-bold text-lg">Photo actuelle</p>
+                    <p className="text-blue-700">Cette photo sera remplacée si vous en uploadez une nouvelle</p>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Section Horaires */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                  <FiClock className="text-indigo-600" />
-                  Horaires de consultation
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {form.schedule.map((day, dayIndex) => (
-                    <div key={day.day} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-semibold text-gray-800">{day.day}</h3>
-                        <button 
-                          type="button"
-                          onClick={() => addSlot(dayIndex)}
-                          className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                        >
-                          <FiPlus className="w-4 h-4" />
-                          Ajouter
-                        </button>
-                      </div>
-
-                      {day.slots.length === 0 ? (
-                        <div className="text-center py-4 text-gray-500 text-sm">
-                          Aucun créneau horaire défini
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {day.slots.map((slot, slotIndex) => (
-                            <div key={slotIndex} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <div>
-                                                                    <input 
-                                    type="time" 
-                                    value={slot.start}
-                                    onChange={(e) => updateSlot(dayIndex, slotIndex, "start", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <input 
-                                    type="time" 
-                                    value={slot.end}
-                                    onChange={(e) => updateSlot(dayIndex, slotIndex, "end", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                  />
-                                </div>
-                              </div>
-                              <button 
-                                type="button"
-                                onClick={() => removeSlot(dayIndex, slotIndex)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Nom */}
+                <div className="space-y-3">
+                  <label className="flex items-center text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    <FiUser className="mr-3 text-blue-900 text-lg" />
+                    Nom complet
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                  />
                 </div>
-              </div>
 
-              {/* Section Absences */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                  <FiCalendar className="text-indigo-600" />
-                  Absences
-                </h2>
+                {/* Spécialité */}
+                <div className="space-y-3">
+                  <label className="flex items-center text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    <FiStethoscope className="mr-3 text-blue-900 text-lg" />
+                    Spécialité médicale
+                  </label>
+                  <input
+                    type="text"
+                    name="specialty"
+                    required
+                    value={formData.specialty}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                  />
+                </div>
 
-                <div className="space-y-4">
-                  {form.absences.map((absence, index) => (
-                    <div key={index} className="flex items-center gap-4 border-b border-gray-200 pb-4">
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Motif de l'absence</label>
-                        <input
-                          type="text"
-                          value={absence.reason}
-                          onChange={(e) => updateAbsence(index, "reason", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                          placeholder="Maladie, Congé, etc."
-                        />
-                      </div>
-                      <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Du</label>
-                        <input
-                          type="date"
-                          value={absence.from}
-                          onChange={(e) => updateAbsence(index, "from", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        />
-                      </div>
-                      <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Au</label>
-                        <input
-                          type="date"
-                          value={absence.to}
-                          onChange={(e) => updateAbsence(index, "to", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        />
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => removeAbsence(index)}
-                        className="text-red-500 hover:text-red-700 transition-all"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                {/* Email */}
+                <div className="space-y-3">
+                  <label className="flex items-center text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    <FiMail className="mr-3 text-blue-900 text-lg" />
+                    Email professionnel
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                  />
+                </div>
 
-                  <button 
-                    type="button"
-                    onClick={addAbsence}
-                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800"
+                {/* Téléphone */}
+                <div className="space-y-3">
+                  <label className="flex items-center text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    <FiPhone className="mr-3 text-blue-900 text-lg" />
+                    Téléphone
+                  </label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                  />
+                </div>
+
+                {/* Statut */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    Statut professionnel
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
                   >
-                    <FiPlus className="w-4 h-4" />
-                    Ajouter une absence
-                  </button>
+                    <option value="Disponible">Disponible</option>
+                    <option value="Occupé">Occupé</option>
+                    <option value="Absent">Absent</option>
+                    <option value="En congé">En congé</option>
+                  </select>
+                </div>
+
+                {/* Nouvelle photo */}
+                <div className="space-y-3">
+                  <label className="flex items-center text-sm font-bold text-gray-800 uppercase tracking-wide">
+                    <FiCamera className="mr-3 text-blue-900 text-lg" />
+                    Nouvelle photo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-blue-900 file:text-white hover:file:bg-blue-800"
+                  />
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="mt-8 flex justify-end gap-4">
-                <button 
+              {/* Notes */}
+              <div className="space-y-3">
+                <label className="flex items-center text-sm font-bold text-gray-800 uppercase tracking-wide">
+                  <FiFileText className="mr-3 text-blue-900 text-lg" />
+                  Notes médicales
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows={4}
+                  className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                />
+              </div>
+
+              {/* Boutons */}
+              <div className="flex justify-end space-x-4 pt-8 border-t-2 border-gray-200">
+                <button
                   type="button"
-                  onClick={() => navigate(`/docteurs/${id}`)}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all"
+                  onClick={() => navigate("/docteurs")}
+                  className="px-8 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition-all duration-300 hover:shadow-lg border-2 border-gray-300"
                 >
                   Annuler
                 </button>
-
-                <button 
+                <button
                   type="submit"
-                  disabled={saving}
-                  className={`px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className="px-8 py-4 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-bold rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-blue-900"
                 >
-                  {saving ? "Enregistrement..." : "Enregistrer les modifications"}
+                  Mettre à Jour
                 </button>
               </div>
             </form>
@@ -537,4 +311,6 @@ export default function EditDoctor() {
       </div>
     </div>
   );
-}
+};
+
+export default EditDoctor;

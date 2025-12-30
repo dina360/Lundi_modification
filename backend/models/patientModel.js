@@ -1,42 +1,65 @@
-const mongoose = require('mongoose');
+// backend/models/patientModel.js
+const mongoose = require("mongoose");
 
-const patientSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  dossier: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  phone: {
-    type: String,
-    required: true
-  },
-  address: {
-    type: String,
-    required: true
-  },
-  lastAppointment: { type: Date, index: true }, // Ajout d'index pour les performances
-  nextAppointment: { type: Date, index: true },
-
-  createdAt: {            // Doit être présent
-    type: Date,
-    default: Date.now,
-    index: true
-  },
-  medicalRecords: [{
+const medicalRecordSchema = new mongoose.Schema(
+  {
     url: { type: String, required: true },
     name: { type: String, required: true },
-    uploadedAt: { type: Date, default: Date.now }
-  }],
-  photo: {
-    type: String,
-    default: null
-  }
-}, { timestamps: true });
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
 
-const Patient = mongoose.model('Patient', patientSchema);
+const patientSchema = new mongoose.Schema(
+  {
+    // =========================
+    // Informations personnelles
+    // =========================
+    name: { type: String, required: true, trim: true },
 
-module.exports = Patient;
+    dossier: { type: String, required: true, unique: true, trim: true, index: true },
+
+    phone: { type: String, required: true, trim: true },
+
+    email: { type: String, default: "", trim: true, lowercase: true },
+
+    address: { type: String, required: true, trim: true },
+
+    birthDate: { type: Date, default: null, index: true },
+
+    photo: { type: String, default: null },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive", "pending"],
+      default: "active",
+      index: true,
+    },
+
+    // =========================
+    // Informations médicales
+    // =========================
+    bloodGroup: {
+      type: String,
+      default: "",
+      enum: ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    },
+
+    allergies: { type: String, default: "", trim: true },
+
+    medicalHistory: { type: String, default: "", trim: true }, // antécédents
+
+    notes: { type: String, default: "", trim: true }, // notes internes
+
+    // =========================
+    // RDV / dossiers médicaux
+    // =========================
+    lastAppointment: { type: Date, default: null, index: true },
+    nextAppointment: { type: Date, default: null, index: true },
+
+    medicalRecords: { type: [medicalRecordSchema], default: [] },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Patient", patientSchema);

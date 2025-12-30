@@ -1,10 +1,20 @@
 // backend/controllers/roomController.js
 const Room = require("../models/roomModel");
 
+// helper: renvoie le bon tableau d'équipements même si ton schema varie
+function getEquipArray(room) {
+  if (Array.isArray(room.equipements)) return "equipements";
+  if (Array.isArray(room.equipments)) return "equipments";
+  // si aucun n’existe, on crée equipements par défaut
+  room.equipements = [];
+  return "equipements";
+}
+
 // GET /api/salles
 exports.getRooms = async (req, res) => {
   try {
-    const rooms = await Room.find().sort({ code: 1 });
+    // si ton schema a "code" c'est ok, sinon remplace par name/createdAt
+    const rooms = await Room.find().sort({ code: 1, createdAt: -1 });
     res.json(rooms);
   } catch (error) {
     console.error("Erreur getRooms:", error);
@@ -16,9 +26,7 @@ exports.getRooms = async (req, res) => {
 exports.getRoomById = async (req, res) => {
   try {
     const room = await Room.findById(req.params.id);
-    if (!room) {
-      return res.status(404).json({ error: "Salle introuvable" });
-    }
+    if (!room) return res.status(404).json({ error: "Salle introuvable" });
     res.json(room);
   } catch (error) {
     console.error("Erreur getRoomById:", error);
@@ -45,9 +53,7 @@ exports.updateRoom = async (req, res) => {
       new: true,
       runValidators: true,
     });
-    if (!updated) {
-      return res.status(404).json({ error: "Salle introuvable" });
-    }
+    if (!updated) return res.status(404).json({ error: "Salle introuvable" });
     res.json(updated);
   } catch (error) {
     console.error("Erreur updateRoom:", error);
@@ -59,9 +65,7 @@ exports.updateRoom = async (req, res) => {
 exports.deleteRoom = async (req, res) => {
   try {
     const deleted = await Room.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ error: "Salle introuvable" });
-    }
+    if (!deleted) return res.status(404).json({ error: "Salle introuvable" });
     res.json({ message: "Salle supprimée avec succès" });
   } catch (error) {
     console.error("Erreur deleteRoom:", error);
@@ -73,11 +77,13 @@ exports.deleteRoom = async (req, res) => {
 exports.addEquipment = async (req, res) => {
   try {
     const room = await Room.findById(req.params.id);
-    if (!room) {
-      return res.status(404).json({ error: "Salle introuvable" });
-    }
+    if (!room) return res.status(404).json({ error: "Salle introuvable" });
 
-    room.equipments.push(req.body);
+    const key = getEquipArray(room);
+
+    // req.body attendu: { name, quantity } ou ce que tu veux stocker
+    room[key].push(req.body);
+
     const saved = await room.save();
     res.status(201).json(saved);
   } catch (error) {
@@ -92,15 +98,13 @@ exports.deleteEquipment = async (req, res) => {
     const { id, equipementId } = req.params;
 
     const room = await Room.findById(id);
-    if (!room) {
-      return res.status(404).json({ error: "Salle introuvable" });
-    }
+    if (!room) return res.status(404).json({ error: "Salle introuvable" });
 
-    room.equipments = room.equipments.filter(
-      (eq) => eq._id.toString() !== equipementId
-    );
+    const key = getEquipArray(room);
+
+    room[key] = room[key].filter((eq) => String(eq._id) !== String(equipementId));
+
     const saved = await room.save();
-
     res.json(saved);
   } catch (error) {
     console.error("Erreur deleteEquipment:", error);

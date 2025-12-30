@@ -60,6 +60,8 @@ const roomSchema = new mongoose.Schema(
       default: "disponible", // disponible, occupée, maintenance, hors_service...
       trim: true,
     },
+
+    // ✅ on garde ton champ "equipments" tel quel
     equipments: [equipmentSchema],
   },
   {
@@ -67,4 +69,9 @@ const roomSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Room", roomSchema);
+/**
+ * ✅ IMPORTANT (2 corrections):
+ * 1) Empêche "OverwriteModelError" si le modèle Room est déjà compilé
+ * 2) Force la collection MongoDB à être exactement "rooms"
+ */
+module.exports = mongoose.models.Room || mongoose.model("Room", roomSchema, "rooms");
