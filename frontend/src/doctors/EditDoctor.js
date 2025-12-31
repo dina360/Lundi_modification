@@ -1,69 +1,106 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  FiCamera,
+  FiX,
+  FiPlus,
+  FiClock,
+  FiCalendar,
+  FiEdit,
+  FiAlertCircle,
+} from "react-icons/fi";
 import { getDoctorById, updateDoctor } from "./doctorService";
-import { FiCamera, FiTrash2, FiSave, FiX, FiPlus, FiClock, FiCalendar } from "react-icons/fi";
-import Sidebar from "../Sidebar"; // Import du Sidebar
+import Sidebar from "../Sidebar";
 
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
+const SPECIALTIES = [
+  { value: "", label: "Choisir une spécialité" },
+  { value: "medecin_generaliste", label: "Médecin Généraliste" },
+  { value: "cardiologue", label: "Cardiologue" },
+  { value: "pediatre", label: "Pédiatre" },
+  { value: "chirurgien", label: "Chirurgien" },
+  { value: "radiologue", label: "Radiologue" },
+];
+
+const STATUS = ["Disponible", "Occupé", "Absent", "En congé"];
 
 export default function EditDoctor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const [form, setForm] = useState({
-    name: "", 
-    specialty: "", 
-    email: "", 
-    phone: "", 
-    notes: "", 
+    name: "",
+    specialty: "",
+    email: "",
+    phone: "",
+    notes: "",
     status: "Disponible",
-    schedule: DAYS.map(d => ({ day: d, slots: [] })), 
-    absences: []
+    schedule: DAYS.map((d) => ({ day: d, slots: [] })),
+    absences: [],
   });
+
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [serverPhoto, setServerPhoto] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Gérer l'état du Sidebar
+  const [error, setError] = useState(null);
 
   const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5000";
-  const displayedPhoto = photoPreview || (serverPhoto ? `${API_BASE}${serverPhoto}` : null);
+  const displayedPhoto = useMemo(() => {
+    if (photoPreview) return photoPreview;
+    if (serverPhoto) return `${API_BASE}${serverPhoto}`;
+    return null;
+  }, [photoPreview, serverPhoto, API_BASE]);
 
-  // Charger les données du médecin
   useEffect(() => {
     const fetchDoctor = async () => {
       try {
         setLoading(true);
+        setError(null);
+
         const data = await getDoctorById(id);
-        
-        // Normaliser le schedule
+
         const normalizeSchedule = (raw) => {
-          if (!raw) return DAYS.map(d => ({ day: d, slots: [] }));
+          if (!raw) return DAYS.map((d) => ({ day: d, slots: [] }));
           if (typeof raw === "string") {
-            try { raw = JSON.parse(raw); } catch { return DAYS.map(d => ({ day: d, slots: [] })); }
+            try {
+              raw = JSON.parse(raw);
+            } catch {
+              return DAYS.map((d) => ({ day: d, slots: [] }));
+            }
           }
           if (Array.isArray(raw)) {
-            return DAYS.map((d, i) => {
-              const found = raw.find(r => (r.day || "").toLowerCase() === d.toLowerCase()) || raw[i];
-              return found ? { 
-                day: found.day || d, 
-                slots: Array.isArray(found.slots) ? found.slots.map(slot => ({
-                  start: slot.start || "",
-                  end: slot.end || ""
-                })) : [] 
-              } : { day: d, slots: [] };
+            return DAYS.map((d) => {
+              const found =
+                raw.find((r) => (r.day || "").toLowerCase() === d.toLowerCase()) || null;
+              return found
+                ? {
+                    day: found.day || d,
+                    slots: Array.isArray(found.slots)
+                      ? found.slots.map((slot) => ({
+                          start: slot.start || "",
+                          end: slot.end || "",
+                        }))
+                      : [],
+                  }
+                : { day: d, slots: [] };
             });
           }
-          return DAYS.map(d => ({ day: d, slots: [] }));
+          return DAYS.map((d) => ({ day: d, slots: [] }));
         };
 
         const schedule = normalizeSchedule(data.schedule);
-        const absences = Array.isArray(data.absences) ? data.absences.map(abs => ({
-          from: abs.from ? abs.from.split('T')[0] : "",
-          to: abs.to ? abs.to.split('T')[0] : "",
-          reason: abs.reason || ""
-        })) : [];
+        const absences = Array.isArray(data.absences)
+          ? data.absences.map((abs) => ({
+              from: abs.from ? abs.from.split("T")[0] : "",
+              to: abs.to ? abs.to.split("T")[0] : "",
+              reason: abs.reason || "",
+            }))
+          : [];
 
         setForm({
           name: data.name || "",
@@ -72,16 +109,14 @@ export default function EditDoctor() {
           phone: data.phone || "",
           notes: data.notes || "",
           status: data.status || "Disponible",
-          schedule: schedule,
-          absences: absences
+          schedule,
+          absences,
         });
-        
-        if (data.photo) {
-          setServerPhoto(data.photo);
-        }
+
+        if (data.photo) setServerPhoto(data.photo);
       } catch (err) {
         console.error("Erreur chargement médecin:", err);
-        alert("Impossible de charger les données du médecin");
+        setError("Impossible de charger les données du médecin.");
         navigate("/docteurs");
       } finally {
         setLoading(false);
@@ -91,448 +126,388 @@ export default function EditDoctor() {
     fetchDoctor();
   }, [id, navigate]);
 
+  const setField = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+
   const handleFile = (e) => {
     const file = e.target.files?.[0] || null;
     setPhoto(file);
-    if (file) {
-      setPhotoPreview(URL.createObjectURL(file));
-    } else {
-      setPhotoPreview(null);
-    }
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!form.name.trim()) newErrors.name = "Le nom est requis";
-    if (!form.specialty.trim()) newErrors.specialty = "La spécialité est requise";
-    if (!form.email.trim()) {
-      newErrors.email = "L'email est requis";
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      newErrors.email = "L'email est invalide";
+  const addSlot = (dayIndex) => {
+    const copy = structuredClone(form.schedule);
+    copy[dayIndex].slots.push({ start: "", end: "" });
+    setForm((prev) => ({ ...prev, schedule: copy }));
+  };
+
+  const updateSlot = (dayIndex, slotIndex, key, value) => {
+    const copy = structuredClone(form.schedule);
+    copy[dayIndex].slots[slotIndex][key] = value;
+    setForm((prev) => ({ ...prev, schedule: copy }));
+  };
+
+  const removeSlot = (dayIndex, slotIndex) => {
+    const copy = structuredClone(form.schedule);
+    copy[dayIndex].slots.splice(slotIndex, 1);
+    setForm((prev) => ({ ...prev, schedule: copy }));
+  };
+
+  const addAbsence = () =>
+    setForm((prev) => ({
+      ...prev,
+      absences: [...prev.absences, { from: "", to: "", reason: "" }],
+    }));
+
+  const updateAbsence = (i, k, v) => {
+    const copy = [...form.absences];
+    copy[i][k] = v;
+    setForm((prev) => ({ ...prev, absences: copy }));
+  };
+
+  const removeAbsence = (i) =>
+    setForm((prev) => ({
+      ...prev,
+      absences: prev.absences.filter((_, idx) => idx !== i),
+    }));
+
+  const validate = () => {
+    if (!form.name.trim() || !form.specialty.trim() || !form.email.trim()) {
+      setError("Nom, spécialité et email sont requis.");
+      return false;
     }
 
-    // Validation des créneaux horaires
-    form.schedule.forEach((day, dayIndex) => {
-      day.slots.forEach((slot, slotIndex) => {
+    // Validations simples planning
+    for (const day of form.schedule) {
+      for (const slot of day.slots) {
         if (slot.start && slot.end && slot.start >= slot.end) {
-          newErrors[`slot-${dayIndex}-${slotIndex}`] = "L'heure de fin doit être après l'heure de début";
+          setError("Un créneau est invalide: l'heure de fin doit être après l'heure de début.");
+          return false;
         }
-      });
-    });
-
-    // Validation des absences
-    form.absences.forEach((absence, index) => {
-      if (absence.from && absence.to && new Date(absence.from) > new Date(absence.to)) {
-        newErrors[`absence-${index}`] = "La date de fin doit être après la date de début";
       }
-    });
+    }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    for (const a of form.absences) {
+      if (a.from && a.to && new Date(a.from) > new Date(a.to)) {
+        setError("Une absence est invalide: la date de fin doit être après la date de début.");
+        return false;
+      }
+    }
+
+    setError(null);
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      alert("Veuillez corriger les erreurs dans le formulaire");
-      return;
-    }
-
-    if (!form.name || !form.specialty || !form.email) {
-      return alert("Nom, spécialité et email sont requis");
-    }
+    if (!validate()) return;
 
     try {
       setSaving(true);
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("specialty", form.specialty);
-      formData.append("email", form.email);
-      formData.append("phone", form.phone || "");
-      formData.append("notes", form.notes || "");
-      formData.append("status", form.status || "Disponible");
-      formData.append("schedule", JSON.stringify(form.schedule));
-      formData.append("absences", JSON.stringify(form.absences));
-      
-      if (photo) {
-        formData.append("photo", photo);
-      }
+      setError(null);
 
-      await updateDoctor(id, formData);
-      alert("Médecin modifié avec succès !");
+      const fd = new FormData();
+      fd.append("name", form.name);
+      fd.append("specialty", form.specialty);
+      fd.append("email", form.email);
+      fd.append("phone", form.phone || "");
+      fd.append("notes", form.notes || "");
+      fd.append("status", form.status || "Disponible");
+      fd.append("schedule", JSON.stringify(form.schedule));
+      fd.append("absences", JSON.stringify(form.absences));
+      if (photo) fd.append("photo", photo);
+
+      await updateDoctor(id, fd);
       navigate(`/docteurs/${id}`);
     } catch (err) {
       console.error("Erreur modification:", err);
-      alert(err?.response?.data?.message || "Erreur lors de la modification du médecin");
+      setError(err?.response?.data?.message || "Erreur lors de la modification du médecin.");
     } finally {
       setSaving(false);
     }
   };
 
-  const addSlot = (dayIndex) => {
-    const updatedSchedule = [...form.schedule];
-    updatedSchedule[dayIndex].slots.push({ start: "", end: "" });
-    setForm(prev => ({ ...prev, schedule: updatedSchedule }));
-  };
-
-  const updateSlot = (dayIndex, slotIndex, field, value) => {
-    const updatedSchedule = [...form.schedule];
-    updatedSchedule[dayIndex].slots[slotIndex][field] = value;
-    setForm(prev => ({ ...prev, schedule: updatedSchedule }));
-  };
-
-  const removeSlot = (dayIndex, slotIndex) => {
-    const updatedSchedule = [...form.schedule];
-    updatedSchedule[dayIndex].slots.splice(slotIndex, 1);
-    setForm(prev => ({ ...prev, schedule: updatedSchedule }));
-  };
-
-  const addAbsence = () => {
-    setForm(prev => ({
-      ...prev,
-      absences: [...prev.absences, { from: "", to: "", reason: "" }]
-    }));
-  };
-
-  const updateAbsence = (index, field, value) => {
-    const updatedAbsences = [...form.absences];
-    updatedAbsences[index][field] = value;
-    setForm(prev => ({ ...prev, absences: updatedAbsences }));
-  };
-
-  const removeAbsence = (index) => {
-    setForm(prev => ({
-      ...prev,
-      absences: prev.absences.filter((_, i) => i !== index)
-    }));
-  };
-
-  const setField = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    // Effacer l'erreur du champ quand l'utilisateur modifie
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des données du médecin...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-900 mx-auto mb-6"></div>
+          <h3 className="text-xl font-bold text-gray-800">Chargement du médecin...</h3>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
-        active="docteurs" // Mettre l'onglet actif à "docteurs"
+        active="docteurs"
       />
 
-      <div className={`transition-all duration-300 ${sidebarOpen ? "ml-72" : "ml-20"} w-full`}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <button 
-                onClick={() => navigate(`/docteurs/${id}`)}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-4 transition-colors"
-              >
-                <FiX className="text-lg" />
-                Retour au profil
-              </button>
-              <h1 className="text-3xl font-bold text-gray-800">Modifier le médecin</h1>
-              <p className="text-gray-600 mt-2">Mettez à jour les informations du profil médical</p>
+      <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"}`}>
+        {/* Header */}
+        <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
+                <FiEdit className="text-2xl text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Modifier le Médecin</h1>
+                <p className="text-blue-100 mt-2 text-lg">
+                  Mise à jour du profil et du planning
+                </p>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Section Informations de base */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                  <div className="w-2 h-6 bg-indigo-600 rounded-full"></div>
-                  Informations personnelles
-                </h2>
+            <button
+              onClick={() => navigate(`/docteurs/${id}`)}
+              className="flex items-center space-x-2 bg-white text-blue-900 hover:bg-blue-50 px-6 py-3 rounded-xl font-bold transition-all duration-300 border-2 border-white"
+            >
+              <FiX className="text-xl" />
+              <span>Retour</span>
+            </button>
+          </div>
+        </header>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Photo */}
-                  <div className="lg:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Photo de profil</label>
-                    <div className="relative group">
-                      <div className="w-40 h-40 rounded-2xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center">
-                        {displayedPhoto ? (
-                          <img src={displayedPhoto} alt={form.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="text-center p-4">
-                            <FiCamera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">Ajouter une photo</p>
-                          </div>
-                        )}
-                      </div>
-                      <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all cursor-pointer rounded-2xl">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleFile}
-                          className="hidden" 
-                        />
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <FiCamera className="w-6 h-6 text-white" />
-                        </div>
-                      </label>
-                    </div>
-                  </div>
+        <div className="max-w-6xl mx-auto px-4 pb-12">
+          {error && (
+            <div className="mb-8 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-xl font-medium flex items-center">
+              <FiAlertCircle className="mr-3 text-red-500" />
+              {error}
+            </div>
+          )}
 
-                  {/* Informations */}
-                  <div className="lg:col-span-2 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Nom complet *
-                        </label>
-                        <input
-                          type="text"
-                          value={form.name}
-                          onChange={(e) => setField("name", e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all ${
-                            errors.name ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="Dr. Jean Dupont"
-                        />
-                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                      </div>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Infos */}
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Informations</h2>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Spécialité *
-                        </label>
-                        <select
-                          value={form.specialty}
-                          onChange={(e) => setField("specialty", e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all ${
-                            errors.specialty ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        >
-                          <option value="">Choisir une spécialité</option>
-                          <option value="medecin_generaliste">Médecin Généraliste</option>
-                          <option value="cardiologue">Cardiologue</option>
-                          <option value="pediatre">Pédiatre</option>
-                          <option value="chirurgien">Chirurgien</option>
-                          <option value="radiologue">Radiologue</option>
-                        </select>
-                        {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Email *
-                        </label>
-                        <input
-                          type="email"
-                          value={form.email}
-                          onChange={(e) => setField("email", e.target.value)}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all ${
-                            errors.email ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="jean.dupont@hopital.com"
-                        />
-                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Téléphone
-                        </label>
-                        <input
-                          type="text"
-                          value={form.phone}
-                          onChange={(e) => setField("phone", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                          placeholder="+33 1 23 45 67 89"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                      <select
-                        value={form.status}
-                        onChange={(e) => setField("status", e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                      >
-                        <option value="Disponible">🟢 Disponible</option>
-                        <option value="Occupé">🟡 Occupé</option>
-                        <option value="Absent">🔴 Absent</option>
-                        <option value="En congé">🟠 En congé</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Biographie / Notes</label>
-                      <textarea
-                        value={form.notes}
-                        onChange={(e) => setField("notes", e.target.value)}
-                        rows={4}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        placeholder="Diplômes, spécialités, expériences..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section Horaires */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                  <FiClock className="text-indigo-600" />
-                  Horaires de consultation
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {form.schedule.map((day, dayIndex) => (
-                    <div key={day.day} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-semibold text-gray-800">{day.day}</h3>
-                        <button 
-                          type="button"
-                          onClick={() => addSlot(dayIndex)}
-                          className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                        >
-                          <FiPlus className="w-4 h-4" />
-                          Ajouter
-                        </button>
-                      </div>
-
-                      {day.slots.length === 0 ? (
-                        <div className="text-center py-4 text-gray-500 text-sm">
-                          Aucun créneau horaire défini
-                        </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Photo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Photo</label>
+                  <div className="relative group">
+                    <div className="w-44 h-44 rounded-2xl border-2 border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center">
+                      {displayedPhoto ? (
+                        <img src={displayedPhoto} alt={form.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="space-y-3">
-                          {day.slots.map((slot, slotIndex) => (
-                            <div key={slotIndex} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <div>
-                                                                    <input 
-                                    type="time" 
-                                    value={slot.start}
-                                    onChange={(e) => updateSlot(dayIndex, slotIndex, "start", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <input 
-                                    type="time" 
-                                    value={slot.end}
-                                    onChange={(e) => updateSlot(dayIndex, slotIndex, "end", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                  />
-                                </div>
-                              </div>
-                              <button 
-                                type="button"
-                                onClick={() => removeSlot(dayIndex, slotIndex)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
+                        <div className="text-center p-4">
+                          <FiCamera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">Ajouter une photo</p>
                         </div>
                       )}
                     </div>
-                  ))}
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all cursor-pointer rounded-2xl">
+                      <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <FiCamera className="w-6 h-6 text-white" />
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Champs */}
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Nom complet *</label>
+                    <input
+                      value={form.name}
+                      onChange={(e) => setField("name", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Spécialité *</label>
+                    <select
+                      value={form.specialty}
+                      onChange={(e) => setField("specialty", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      required
+                    >
+                      {SPECIALTIES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Email *</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setField("email", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Téléphone</label>
+                    <input
+                      value={form.phone}
+                      onChange={(e) => setField("phone", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Statut</label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setField("status", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                    >
+                      {STATUS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Notes</label>
+                    <textarea
+                      value={form.notes}
+                      onChange={(e) => setField("notes", e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Section Absences */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                  <FiCalendar className="text-indigo-600" />
-                  Absences
-                </h2>
+            {/* Horaires */}
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <FiClock className="text-blue-900" /> Horaires
+              </h2>
 
-                <div className="space-y-4">
-                  {form.absences.map((absence, index) => (
-                    <div key={index} className="flex items-center gap-4 border-b border-gray-200 pb-4">
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Motif de l'absence</label>
-                        <input
-                          type="text"
-                          value={absence.reason}
-                          onChange={(e) => updateAbsence(index, "reason", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                          placeholder="Maladie, Congé, etc."
-                        />
-                      </div>
-                      <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Du</label>
-                        <input
-                          type="date"
-                          value={absence.from}
-                          onChange={(e) => updateAbsence(index, "from", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        />
-                      </div>
-                      <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Au</label>
-                        <input
-                          type="date"
-                          value={absence.to}
-                          onChange={(e) => updateAbsence(index, "to", e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        />
-                      </div>
-                      <button 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {form.schedule.map((d, di) => (
+                  <div key={d.day} className="border-2 border-gray-100 rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="font-bold text-gray-900">{d.day}</div>
+                      <button
                         type="button"
-                        onClick={() => removeAbsence(index)}
-                        className="text-red-500 hover:text-red-700 transition-all"
+                        onClick={() => addSlot(di)}
+                        className="flex items-center gap-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
                       >
-                        <FiTrash2 className="w-4 h-4" />
+                        <FiPlus /> Ajouter
+                      </button>
+                    </div>
+
+                    {d.slots.length === 0 ? (
+                      <div className="text-sm text-gray-500">Aucun créneau</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {d.slots.map((s, si) => (
+                          <div key={si} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                            <input
+                              type="time"
+                              value={s.start}
+                              onChange={(e) => updateSlot(di, si, "start", e.target.value)}
+                              className="px-3 py-2 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                            />
+                            <span className="text-gray-500 font-semibold">—</span>
+                            <input
+                              type="time"
+                              value={s.end}
+                              onChange={(e) => updateSlot(di, si, "end", e.target.value)}
+                              className="px-3 py-2 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSlot(di, si)}
+                              className="ml-auto px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-semibold transition-all duration-300 border-2 border-red-200"
+                            >
+                              Suppr
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Absences */}
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <FiCalendar className="text-blue-900" /> Absences
+              </h2>
+
+              {form.absences.length === 0 ? (
+                <div className="text-sm text-gray-500">Aucune absence</div>
+              ) : (
+                <div className="space-y-4">
+                  {form.absences.map((a, i) => (
+                    <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                      <input
+                        type="date"
+                        value={a.from}
+                        onChange={(e) => updateAbsence(i, "from", e.target.value)}
+                        className="px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      />
+                      <input
+                        type="date"
+                        value={a.to}
+                        onChange={(e) => updateAbsence(i, "to", e.target.value)}
+                        className="px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      />
+                      <input
+                        value={a.reason}
+                        onChange={(e) => updateAbsence(i, "reason", e.target.value)}
+                        placeholder="Raison"
+                        className="md:col-span-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAbsence(i)}
+                        className="md:col-span-4 justify-self-end px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-semibold transition-all duration-300 border-2 border-red-200"
+                      >
+                        Supprimer
                       </button>
                     </div>
                   ))}
-
-                  <button 
-                    type="button"
-                    onClick={addAbsence}
-                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Ajouter une absence
-                  </button>
                 </div>
-              </div>
+              )}
 
-              {/* Actions */}
-              <div className="mt-8 flex justify-end gap-4">
-                <button 
-                  type="button"
-                  onClick={() => navigate(`/docteurs/${id}`)}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all"
-                >
-                  Annuler
-                </button>
+              <button
+                type="button"
+                onClick={addAbsence}
+                className="mt-4 flex items-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+              >
+                <FiPlus /> Ajouter une absence
+              </button>
+            </div>
 
-                <button 
-                  type="submit"
-                  disabled={saving}
-                  className={`px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-                </button>
-              </div>
-            </form>
-          </div>
+            {/* Actions */}
+            <div className="flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => navigate(`/docteurs/${id}`)}
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-xl transition-all duration-300"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-3 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-60"
+              >
+                {saving ? "Enregistrement..." : "Mettre à jour"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

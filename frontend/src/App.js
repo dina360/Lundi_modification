@@ -40,13 +40,13 @@ import MaladeHome from "./malade/MaladeHome";
 import MaladeDemandeRdv from "./malade/MaladeDemandeRdv";
 import MaladeHistoriqueRdv from "./malade/MaladeHistoriqueRdv";
 import MaladeProfile from "./malade/MaladeProfile";
+
+// Secrétaire
 import SecretaireHome from "./SecretaireHome";
 import SecretaireRendezVous from "./SecretaireRendezVous";
 import SecretairePatientsList from "./secretaire/SecretairePatientsList";
 import SecretaireSalles from "./SecretaireSalles";
 import SecretaireReservationsHistory from "./SecretaireReservationsHistory";
-// Composants simples
-
 
 function App() {
   // ============================
@@ -97,6 +97,7 @@ function App() {
           }
         />
 
+        {/* ✅ ROUTE OFFICIELLE DOSSIER PATIENT */}
         <Route
           path="/patients/:patientId/dossier"
           element={
@@ -105,34 +106,79 @@ function App() {
             </ProtectedRoute>
           }
         />
-<Route path="/secretaire/home" element={
-          <ProtectedRoute roles={["secretaire"]}><SecretaireHome /></ProtectedRoute>
-        }/>
-<Route
-  path="/secretaire/rendezvous"
-  element={
-    <ProtectedRoute roles={["secretaire"]}>
-      <SecretaireRendezVous />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/secretaire/patients"
-  element={
-    <ProtectedRoute roles={["secretaire"]}>
-      <SecretairePatientsList />
-    </ProtectedRoute>
-  }
-/>
-<Route path="/secretaire/salles" element={<SecretaireSalles />} />
-<Route path="/secretaire/salles/historique" element={<SecretaireReservationsHistory />} />
 
+        {/* ✅ ALIAS (pour compatibilité avec ancien lien) */}
+        <Route
+          path="/dossier-patient/:patientId"
+          element={
+            <ProtectedRoute roles={["admin", "medecin"]}>
+              <DossierPatient />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/personnel"
           element={
             <ProtectedRoute roles={["admin"]}>
               <StaffPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================= RENDEZ-VOUS ================= */}
+        <Route
+          path="/rendezvous"
+          element={
+            <ProtectedRoute roles={["admin", "medecin", "secretaire"]}>
+              <RendezVousPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================= MEDECINS (ADMIN) ================= */}
+        <Route
+          path="/docteurs"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <DoctorsList />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/docteurs/ajouter"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AddDoctor />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/docteurs/:id"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <DoctorDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/docteurs/:id/edit"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <EditDoctor />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================= SALLES ================= */}
+        <Route
+          path="/salles"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <SallesBlocs />
             </ProtectedRoute>
           }
         />
@@ -203,63 +249,6 @@ function App() {
           }
         />
 
-        {/* ================= RENDEZ-VOUS ================= */}
-        <Route
-          path="/rendezvous"
-          element={
-            <ProtectedRoute roles={["admin", "medecin", "secretaire"]}>
-              <RendezVousPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ================= MEDECINS (ADMIN) ================= */}
-        <Route
-          path="/docteurs"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <DoctorsList />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/docteurs/ajouter"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <AddDoctor />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/docteurs/:id"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <DoctorDetail />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/docteurs/:id/edit"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <EditDoctor />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ================= SALLES ================= */}
-        <Route
-          path="/salles"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <SallesBlocs />
-            </ProtectedRoute>
-          }
-        />
-
         {/* ================= ESPACE MEDECIN ================= */}
         <Route
           path="/medecin/*"
@@ -288,6 +277,31 @@ function App() {
               <SecretaireHome />
             </ProtectedRoute>
           }
+        />
+
+        <Route
+          path="/secretaire/rendezvous"
+          element={
+            <ProtectedRoute roles={["secretaire"]}>
+              <SecretaireRendezVous />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/secretaire/patients"
+          element={
+            <ProtectedRoute roles={["secretaire"]}>
+              <SecretairePatientsList />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* (à protéger si besoin) */}
+        <Route path="/secretaire/salles" element={<SecretaireSalles />} />
+        <Route
+          path="/secretaire/salles/historique"
+          element={<SecretaireReservationsHistory />}
         />
 
         {/* ================= FALLBACK ================= */}

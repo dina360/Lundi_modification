@@ -4,7 +4,6 @@ import axios from "axios";
 import {
   FiSearch,
   FiUserPlus,
-  FiUser,
   FiPhone,
   FiMail,
   FiBriefcase,
@@ -16,8 +15,6 @@ import {
   FiRefreshCw,
   FiUsers,
   FiActivity,
-  FiTrendingUp,
-  FiX,
   FiAlertCircle,
 } from "react-icons/fi";
 import Sidebar from "../Sidebar";
