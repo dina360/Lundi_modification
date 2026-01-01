@@ -4,7 +4,7 @@ import axios from "axios";
 import "./PredictionPatient.css";
 
 const API_URL = "http://localhost:5000/api/prediction/analyze";
- // le backend Node redirige vers Flask
+// le backend Node redirige vers Flask
 
 function PredictionPatient() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -13,8 +13,20 @@ function PredictionPatient() {
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState(null); // { prediction, probabilities, recommendations }
 
+  const resetAll = () => {
+    setSelectedFile(null);
+    setPreviewName("");
+    setLoading(false);
+    setErrorMsg("");
+    setResult(null);
+
+    // reset input file visuellement (si besoin)
+    const input = document.getElementById("pred-file-input");
+    if (input) input.value = "";
+  };
+
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     setSelectedFile(file || null);
     setPreviewName(file ? file.name : "");
     setErrorMsg("");
@@ -36,8 +48,15 @@ function PredictionPatient() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
+      // ✅ Si tes routes backend sont protégées (authMiddleware),
+      // il faut envoyer le token. Sinon: 401.
+      const token = localStorage.getItem("authToken");
+
       const response = await axios.post(API_URL, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       setResult(response.data);
@@ -53,7 +72,7 @@ function PredictionPatient() {
   };
 
   const renderProbabilities = () => {
-    if (!result || !result.probabilities) return null;
+    if (!result?.probabilities) return null;
 
     const entries = Object.entries(result.probabilities);
 
@@ -81,13 +100,13 @@ function PredictionPatient() {
   };
 
   const renderRecommendations = () => {
-    if (!result || !result.recommendations) return null;
+    if (!result?.recommendations) return null;
 
     return (
       <ul className="pred-reco-list">
         {result.recommendations.map((rec, index) => (
           <li key={index} className="pred-reco-item">
-            <span className="pred-reco-bullet">•</span>
+            <span className="pred-reco-bullet">✓</span>
             <span>{rec}</span>
           </li>
         ))}
@@ -101,9 +120,20 @@ function PredictionPatient() {
         <div>
           <h1>Prédiction de Santé (IA)</h1>
           <p>
-            Téléchargez vos analyses (CSV ou PDF). Le système IA estime la
-            maladie la plus probable et propose des recommandations.
+            Téléchargez vos analyses (CSV ou PDF). Le système IA estime la maladie
+            la plus probable et propose des recommandations.
           </p>
+        </div>
+
+        <div className="header-actions">
+          <button type="button" className="btn-secondary" onClick={resetAll}>
+            Réinitialiser
+          </button>
+
+          <div className="status-indicator">
+            <span className={`status-dot ${loading ? "processing" : ""}`} />
+            {loading ? "Analyse en cours..." : "Système en ligne"}
+          </div>
         </div>
       </header>
 
@@ -118,7 +148,12 @@ function PredictionPatient() {
           <form onSubmit={handleSubmit} className="upload-form">
             <label className="file-input-label">
               <span className="file-input-title">Fichier d'analyse</span>
+              <span className="file-input-subtitle">
+                Sélectionnez un fichier et lancez l’analyse
+              </span>
+
               <input
+                id="pred-file-input"
                 type="file"
                 accept=".csv,.pdf"
                 onChange={handleFileChange}
@@ -150,8 +185,7 @@ function PredictionPatient() {
               <li>Utilisez les rapports générés par le laboratoire.</li>
               <li>Les valeurs doivent correspondre aux analyses sanguines.</li>
               <li>
-                Le résultat reste une aide à la décision, pas un diagnostic
-                définitif.
+                Le résultat reste une aide à la décision, pas un diagnostic définitif.
               </li>
             </ul>
           </div>
@@ -164,17 +198,17 @@ function PredictionPatient() {
           {!result && !loading && (
             <div className="result-placeholder">
               <p>
-                Aucun résultat pour le moment. Importez un fichier et lancez
-                l'analyse pour afficher les prédictions.
+                Aucun résultat pour le moment. Importez un fichier et lancez l'analyse
+                pour afficher les prédictions.
               </p>
             </div>
           )}
 
           {result && (
-            <>
+            <div className="result-content">
               {/* Résultat principal */}
               <div className="pred-main-result">
-                <span className="pred-main-label">Résultat principal :</span>
+                <span className="pred-main-label">Résultat principal</span>
                 <span className="pred-main-badge">{result.prediction}</span>
               </div>
 
@@ -189,7 +223,7 @@ function PredictionPatient() {
                 <h3>Recommandations personnalisées</h3>
                 {renderRecommendations()}
               </div>
-            </>
+            </div>
           )}
         </section>
       </div>
