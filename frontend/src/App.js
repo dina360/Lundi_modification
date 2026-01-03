@@ -1,16 +1,20 @@
-import React from "react";
+// frontend/src/App.js
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { io } from "socket.io-client";
 
 import HomePage from "./HomePage";
 import LoginPage from "./LoginPage";
 import RegisterPage from "./RegisterPage";
 
 import Dashboard from "./Dashboard";
-import Home from "./Home"; 
+import Home from "./Home";
 import RendezVousPage from "./RendezVousPage";
 import DossierPatient from "./DossierPatient";
 import StaffPage from "./staff/StaffPage";
-import ProtectedRoute from "./ProtectedRoute";
+
+// ✅ IA
+import PredictionPatient from "./PredictionPatient";
 
 // Espace Médecin
 import MedecinLayout from "./medecin/MedecinLayout";
@@ -30,8 +34,24 @@ import EditDoctor from "./doctors/EditDoctor";
 
 import SallesBlocs from "./SallesBlocs";
 
+import ProtectedRoute from "./ProtectedRoute";
+import "./App.css";
+
+// Espace Malade / Patient
+import MaladeHome from "./malade/MaladeHome";
+import MaladeDemandeRdv from "./malade/MaladeDemandeRdv";
+import MaladeHistoriqueRdv from "./malade/MaladeHistoriqueRdv";
+import MaladeProfile from "./malade/MaladeProfile";
+
+// Secrétaire
+import SecretaireHome from "./SecretaireHome";
+import SecretaireRendezVous from "./SecretaireRendezVous";
+import SecretairePatientsList from "./secretaire/SecretairePatientsList";
+import SecretaireSalles from "./SecretaireSalles";
+import SecretaireReservationsHistory from "./SecretaireReservationsHistory";
+
 /* ============================
-   Espaces Rôles
+   Espaces rôles simples (HEAD)
    ============================ */
 const PatientHome = () => (
   <div style={{ padding: "2rem" }}>
@@ -47,7 +67,7 @@ const MedecinHome = () => (
   </div>
 );
 
-const SecretaireHome = () => (
+const SecretaireHomeFallback = () => (
   <div style={{ padding: "2rem" }}>
     <h1>Espace Secrétaire</h1>
     <p>Gestion des rendez-vous & dossiers.</p>
@@ -55,44 +75,139 @@ const SecretaireHome = () => (
 );
 
 /* ============================
-   ROUTES PRINCIPALES
+   App Component
    ============================ */
-
 function App() {
+  // ============================
+  // Socket.io (connexion globale)
+  // ============================
+  useEffect(() => {
+    const socket = io("http://localhost:5000", {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      console.log("🟢 Connecté au serveur Socket.io");
+    });
+
+    socket.on("newMessage", (message) => {
+      console.log("📩 Nouveau message reçu :", message);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <div className="app-container">
       <Routes>
-
-        {/* PUBLIC */}
+        {/* ================= PUBLIC ================= */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
+        {/* ================= ADMIN ================= */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/dossier"
+          element={
+            <ProtectedRoute roles={["admin", "medecin"]}>
+              <DossierPatient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dossier-patient/:patientId"
+          element={
+            <ProtectedRoute roles={["admin", "medecin"]}>
+              <DossierPatient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/personnel"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <StaffPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <DoctorsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs/ajouter"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AddDoctor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs/:id"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <DoctorDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs/:id/edit"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <EditDoctor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/salles"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <SallesBlocs />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ---------------- ADMIN ---------------- */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute roles={["admin"]}><Dashboard /></ProtectedRoute>
-        }/>
+        {/* ================= RENDEZ-VOUS ================= */}
+        <Route
+          path="/rendezvous"
+          element={
+            <ProtectedRoute roles={["admin", "medecin", "secretaire"]}>
+              <RendezVousPage />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/patients" element={
-          <ProtectedRoute roles={["admin"]}><Home /></ProtectedRoute>
-        }/>
-
-        <Route path="/patients/:patientId/dossier" element={
-          <ProtectedRoute roles={["admin","medecin"]}><DossierPatient /></ProtectedRoute>
-        }/>
-
-
-        {/* Rendez-vous → admin + medecin + secretaire */}
-        <Route path="/rendezvous" element={
-          <ProtectedRoute roles={["admin","medecin","secretaire"]}><RendezVousPage /></ProtectedRoute>
-        }/>
-
-
-        {/* ---------------- ESPACE MÉDECIN ---------------- */}
-        <Route path="/medecin/*" element={
-          <ProtectedRoute roles={["medecin"]}><MedecinLayout /></ProtectedRoute>
-        }>
+        {/* ================= ESPACE MEDECIN ================= */}
+        <Route
+          path="/medecin/*"
+          element={
+            <ProtectedRoute roles={["medecin"]}>
+              <MedecinLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="home" element={<MedecinDashboard />} />
           <Route path="profile" element={<MedecinProfile />} />
           <Route path="patients" element={<MedecinPatientsList />} />
@@ -102,49 +217,97 @@ function App() {
           <Route path="patients/:id/dossier" element={<MedecinPatientDossier />} />
         </Route>
 
+        {/* ================= MALADE / PATIENT ================= */}
+        <Route
+          path="/malade/home"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/rendezvous/demande"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeDemandeRdv />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/rendezvous/modifier/:rdvId"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/rendezvous/historique"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/profile"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/prediction"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <PredictionPatient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patient/prediction"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <PredictionPatient />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ---------------- PATIENT ---------------- */}
-        <Route path="/patient/home" element={
-          <ProtectedRoute roles={["patient"]}><PatientHome /></ProtectedRoute>
-        }/>
+        {/* ================= SECRETAIRE ================= */}
+        <Route
+          path="/secretaire/home"
+          element={
+            <ProtectedRoute roles={["secretaire"]}>
+              <SecretaireHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/secretaire/rendezvous"
+          element={
+            <ProtectedRoute roles={["secretaire"]}>
+              <SecretaireRendezVous />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/secretaire/patients"
+          element={
+            <ProtectedRoute roles={["secretaire"]}>
+              <SecretairePatientsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/secretaire/salles" element={<SecretaireSalles />} />
+        <Route
+          path="/secretaire/salles/historique"
+          element={<SecretaireReservationsHistory />}
+        />
 
-
-        {/* ---------------- SECRÉTAIRE ---------------- */}
-        <Route path="/secretaire/home" element={
-          <ProtectedRoute roles={["secretaire"]}><SecretaireHome /></ProtectedRoute>
-        }/>
-
-
-        {/* ---------------- PERSONNEL ADMIN ---------------- */}
-        <Route path="/personnel" element={
-          <ProtectedRoute roles={["admin"]}><StaffPage /></ProtectedRoute>
-        }/>
-
-
-        {/* ---------------- GESTION MÉDECINS (admin) ---------------- */}
-        <Route path="/docteurs" element={
-          <ProtectedRoute roles={["admin"]}><DoctorsList /></ProtectedRoute>
-        }/>
-        <Route path="/docteurs/ajouter" element={
-          <ProtectedRoute roles={["admin"]}><AddDoctor /></ProtectedRoute>
-        }/>
-        <Route path="/docteurs/:id" element={
-          <ProtectedRoute roles={["admin"]}><DoctorDetail /></ProtectedRoute>
-        }/>
-        <Route path="/docteurs/:id/edit" element={
-          <ProtectedRoute roles={["admin"]}><EditDoctor /></ProtectedRoute>
-        }/>
-
-
-        {/* Salles & Blocs */}
-        <Route path="/salles" element={
-          <ProtectedRoute roles={["admin"]}><SallesBlocs /></ProtectedRoute>
-        }/>
-
-
-        {/* Fallback route */}
+        {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </div>
   );

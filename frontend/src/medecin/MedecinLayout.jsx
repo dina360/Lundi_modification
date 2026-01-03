@@ -64,7 +64,7 @@ function MedecinLayout() {
           <p className="text-center mt-2 font-semibold">Dr.{medecin.name}</p>
           {/* ✅ Affiche la spécialité ici */}
           <p className="text-center text-sm text-blue-300">
-            Spécialite en {medecin.specialty || "Spécialité non définie"}
+            {medecin.specialty || "Spécialité non définie"}
           </p>
           <p className="text-center text-sm text-gray-300">{medecin.email}</p>
         </div>

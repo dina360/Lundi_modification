@@ -1,24 +1,22 @@
 // src/staff/StaffPage.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   FiSearch,
   FiUserPlus,
-  FiUser,
   FiPhone,
   FiMail,
   FiBriefcase,
   FiShield,
   FiEdit,
   FiTrash2,
-  FiFilter,
   FiDownload,
   FiRefreshCw,
   FiUsers,
   FiActivity,
-  FiTrendingUp,
   FiX,
   FiAlertCircle,
+  FiFilter,
 } from "react-icons/fi";
 import Sidebar from "../Sidebar";
 
@@ -256,7 +254,7 @@ function EditStaffModal({ onClose, onEditStaff, staff }) {
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg:white/20 rounded-xl transition-colors"
+              className="p-2 hover:bg-white/20 rounded-xl transition-colors"
             >
               <FiX className="text-2xl text-white" />
             </button>
@@ -396,50 +394,92 @@ const StaffPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [staff, setStaff] = useState([]);
   const [search, setSearch] = useState("");
+
+  const [filterStatus, setFilterStatus] = useState("Tous");
+  const [filterRole, setFilterRole] = useState("Tous");
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Charger personnel
-  useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
-        const res = await axios.get("http://localhost:5000/api/staff", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStaff(res.data || []);
-      } catch (err) {
-        console.error("Erreur chargement personnel:", err);
-        setError("Impossible de charger le personnel médical.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const token = localStorage.getItem("authToken");
 
+  const fetchStaff = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      if (!token) {
+        setError("Vous n'êtes pas connecté(e). Merci de vous reconnecter.");
+        return;
+      }
+
+      const res = await axios.get("http://localhost:5000/api/staff", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setStaff(res.data || []);
+    } catch (err) {
+      console.error("Erreur chargement personnel:", err);
+      if (err?.response?.status === 401) {
+        localStorage.removeItem("authToken");
+        setError("Session expirée. Merci de vous reconnecter.");
+      } else {
+        setError("Impossible de charger le personnel médical.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStaff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = (e) => setSearch(e.target.value);
 
-  const filteredStaff = staff.filter((member) => {
-    const s = search.toLowerCase();
-    return (
-      member.name?.toLowerCase().includes(s) ||
-      member.role?.toLowerCase().includes(s) ||
-      member.specialty?.toLowerCase().includes(s) ||
-      member.email?.toLowerCase().includes(s)
-    );
-  });
+  const filteredStaff = useMemo(() => {
+    const s = (search || "").toLowerCase();
+
+    return (staff || []).filter((member) => {
+      const matchSearch =
+        member.name?.toLowerCase().includes(s) ||
+        member.role?.toLowerCase().includes(s) ||
+        member.specialty?.toLowerCase().includes(s) ||
+        member.email?.toLowerCase().includes(s);
+
+      const memberStatus = (member.status || "Actif").toLowerCase();
+
+      const matchStatus =
+        filterStatus === "Tous"
+          ? true
+          : memberStatus === filterStatus.toLowerCase();
+
+      const matchRole =
+        filterRole === "Tous"
+          ? true
+          : (member.role || "").toLowerCase() === filterRole.toLowerCase();
+
+      return matchSearch && matchStatus && matchRole;
+    });
+  }, [staff, search, filterStatus, filterRole]);
 
   const addStaff = async (data) => {
     try {
-      const token = localStorage.getItem("authToken");
+      setError(null);
+      if (!token) {
+        setError("Vous n'êtes pas connecté(e).");
+        return;
+      }
+
       const res = await axios.post("http://localhost:5000/api/staff", data, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setStaff((prev) => [...prev, res.data]);
       setIsAddModalOpen(false);
     } catch (err) {
@@ -450,7 +490,12 @@ const StaffPage = () => {
 
   const editStaff = async (updated) => {
     try {
-      const token = localStorage.getItem("authToken");
+      setError(null);
+      if (!token) {
+        setError("Vous n'êtes pas connecté(e).");
+        return;
+      }
+
       const res = await axios.put(
         `http://localhost:5000/api/staff/${updated._id}`,
         updated,
@@ -458,9 +503,8 @@ const StaffPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setStaff((prev) =>
-        prev.map((m) => (m._id === updated._id ? res.data : m))
-      );
+
+      setStaff((prev) => prev.map((m) => (m._id === updated._id ? res.data : m)));
       setIsEditModalOpen(false);
       setSelectedStaff(null);
     } catch (err) {
@@ -470,14 +514,19 @@ const StaffPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Confirmer la suppression de ce membre du personnel ?"))
-      return;
+    if (!window.confirm("Confirmer la suppression de ce membre du personnel ?")) return;
 
     try {
-      const token = localStorage.getItem("authToken");
+      setError(null);
+      if (!token) {
+        setError("Vous n'êtes pas connecté(e).");
+        return;
+      }
+
       await axios.delete(`http://localhost:5000/api/staff/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setStaff((prev) => prev.filter((m) => m._id !== id));
     } catch (err) {
       console.error("Erreur suppression personnel:", err);
@@ -485,20 +534,44 @@ const StaffPage = () => {
     }
   };
 
+  // Export CSV (simple)
+  const handleExportCSV = () => {
+    const rows = filteredStaff.map((m) => ({
+      name: m.name || "",
+      role: m.role || "",
+      specialty: m.specialty || "",
+      phone: m.phone || "",
+      email: m.email || "",
+      status: m.status || "Actif",
+    }));
+
+    const headers = ["Nom", "Rôle", "Service", "Téléphone", "Email", "Statut"];
+    const csv = [
+      headers.join(";"),
+      ...rows.map((r) =>
+        [r.name, r.role, r.specialty, r.phone, r.email, r.status]
+          .map((v) => `"${String(v).replaceAll('"', '""')}"`)
+          .join(";")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "personnel_neohealth.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Stats rapides
   const totalStaff = staff.length;
-  const totalNurses = staff.filter((m) =>
-    (m.role || "").toLowerCase().includes("infirmier")
-  ).length;
-  const totalAssistants = staff.filter((m) =>
-    (m.role || "").toLowerCase().includes("aide")
-  ).length;
-  const totalActive = staff.filter(
-    (m) => (m.status || "").toLowerCase() === "actif"
-  ).length;
+  const totalNurses = staff.filter((m) => (m.role || "").toLowerCase().includes("infirmier")).length;
+  const totalAssistants = staff.filter((m) => (m.role || "").toLowerCase().includes("aide")).length;
+  const totalActive = staff.filter((m) => (m.status || "Actif").toLowerCase() === "actif").length;
 
   const getStatusColor = (status) => {
-    switch ((status || "").toLowerCase()) {
+    switch ((status || "Actif").toLowerCase()) {
       case "actif":
         return "bg-green-100 text-green-800 border-green-300";
       case "inactif":
@@ -514,18 +587,10 @@ const StaffPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        active="personnel"
-      />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} active="personnel" />
 
-      <div
-        className={`transition-all duration-300 min-h-screen ${
-          sidebarOpen ? "ml-72" : "ml-20"
-        }`}
-      >
-        {/* HEADER (même style que DoctorsList) */}
+      <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"}`}>
+        {/* HEADER */}
         <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
           <div className="flex items-center justify-between">
             {/* Titre */}
@@ -539,8 +604,7 @@ const StaffPage = () => {
                     Gestion du Personnel Médical & Paramédical
                   </h1>
                   <p className="text-blue-100 mt-2 text-lg">
-                    Organisation du corps infirmier, aides-soignants et
-                    personnel de support
+                    Organisation du corps infirmier, aides-soignants et personnel de support
                   </p>
                 </div>
               </div>
@@ -550,9 +614,7 @@ const StaffPage = () => {
             <div className="flex items-center space-x-4">
               <div className="text-right mr-6">
                 <div className="text-blue-200 text-sm">Hôpital NeoHealth</div>
-                <div className="text-white font-semibold">
-                  Direction des Ressources Médicales
-                </div>
+                <div className="text-white font-semibold">Direction des Ressources Médicales</div>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(true)}
@@ -580,18 +642,68 @@ const StaffPage = () => {
                   placeholder="Rechercher par nom, rôle, service, email..."
                 />
               </div>
+
               <div className="flex items-center space-x-4 ml-6">
-                <button className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200">
+                {/* Filtre Statut */}
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-4 py-3 bg-blue-100 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+                  title="Filtrer par statut"
+                >
+                  <option value="Tous">Statut: Tous</option>
+                  <option value="Actif">Actif</option>
+                  <option value="Inactif">Inactif</option>
+                  <option value="En congé">En congé</option>
+                  <option value="En formation">En formation</option>
+                </select>
+
+                {/* Filtre Rôle */}
+                <select
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="px-4 py-3 bg-blue-100 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+                  title="Filtrer par rôle"
+                >
+                  <option value="Tous">Rôle: Tous</option>
+                  <option value="Infirmier(e)">Infirmier(e)</option>
+                  <option value="Aide-soignant(e)">Aide-soignant(e)</option>
+                  <option value="Technicien(ne) de bloc">Technicien(ne) de bloc</option>
+                  <option value="Secrétaire médicale">Secrétaire médicale</option>
+                  <option value="Responsable logistique">Responsable logistique</option>
+                  <option value="Agent d’accueil">Agent d’accueil</option>
+                </select>
+
+                {/* Réinitialiser */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterStatus("Tous");
+                    setFilterRole("Tous");
+                    setSearch("");
+                  }}
+                  className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+                  title="Réinitialiser filtres"
+                >
                   <FiFilter className="text-lg" />
-                  <span>Filtrer</span>
+                  <span>Réinitialiser</span>
                 </button>
-                <button className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200">
+
+                {/* Export */}
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+                  title="Exporter CSV"
+                >
                   <FiDownload className="text-lg" />
                   <span>Exporter</span>
                 </button>
+
+                {/* Actualiser */}
                 <button
                   className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
-                  onClick={() => window.location.reload()}
+                  onClick={fetchStaff}
+                  title="Actualiser"
                 >
                   <FiRefreshCw className="text-lg" />
                   <span>Actualiser</span>
@@ -600,14 +712,12 @@ const StaffPage = () => {
             </div>
           </div>
 
-          {/* Petites cartes stats (comme mini-dashboard) */}
+          {/* Petites cartes stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex items-center justify-between">
               <div>
                 <div className="text-gray-500 text-sm">Total Personnel</div>
-                <div className="text-3xl font-bold text-gray-900 mt-2">
-                  {totalStaff}
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mt-2">{totalStaff}</div>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
                 <FiUsers className="text-2xl text-blue-900" />
@@ -617,9 +727,7 @@ const StaffPage = () => {
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex items-center justify-between">
               <div>
                 <div className="text-gray-500 text-sm">Infirmier(e)s</div>
-                <div className="text-3xl font-bold text-gray-900 mt-2">
-                  {totalNurses}
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mt-2">{totalNurses}</div>
               </div>
               <div className="p-3 bg-green-100 rounded-xl">
                 <FiShield className="text-2xl text-green-900" />
@@ -629,9 +737,7 @@ const StaffPage = () => {
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex items-center justify-between">
               <div>
                 <div className="text-gray-500 text-sm">Aides / Support</div>
-                <div className="text-3xl font-bold text-gray-900 mt-2">
-                  {totalAssistants}
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mt-2">{totalAssistants}</div>
               </div>
               <div className="p-3 bg-purple-100 rounded-xl">
                 <FiBriefcase className="text-2xl text-purple-900" />
@@ -641,9 +747,7 @@ const StaffPage = () => {
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex items-center justify-between">
               <div>
                 <div className="text-gray-500 text-sm">Actifs</div>
-                <div className="text-3xl font-bold text-gray-900 mt-2">
-                  {totalActive}
-                </div>
+                <div className="text-3xl font-bold text-gray-900 mt-2">{totalActive}</div>
               </div>
               <div className="p-3 bg-emerald-100 rounded-xl">
                 <FiActivity className="text-2xl text-emerald-900" />
@@ -664,22 +768,18 @@ const StaffPage = () => {
             {loading ? (
               <div className="p-16 text-center">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-900 mx-auto mb-6"></div>
-                <h3 className="text-xl font-bold text-gray-800">
-                  Chargement du personnel...
-                </h3>
+                <h3 className="text-xl font-bold text-gray-800">Chargement du personnel...</h3>
               </div>
             ) : filteredStaff.length === 0 ? (
               <div className="p-16 text-center">
                 <div className="text-7xl mb-6">🏥</div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                  {staff.length === 0
-                    ? "Aucun membre enregistré"
-                    : "Aucun résultat"}
+                  {staff.length === 0 ? "Aucun membre enregistré" : "Aucun résultat"}
                 </h3>
                 <p className="text-gray-600 mb-8 text-lg">
                   {staff.length === 0
                     ? "Commencez par ajouter le premier membre du personnel."
-                    : "Aucun membre ne correspond à votre recherche."}
+                    : "Aucun membre ne correspond à votre recherche / filtres."}
                 </p>
                 <button
                   onClick={() => setIsAddModalOpen(true)}
@@ -715,6 +815,7 @@ const StaffPage = () => {
                         </th>
                       </tr>
                     </thead>
+
                     <tbody className="divide-y divide-gray-200">
                       {filteredStaff.map((member) => (
                         <tr
@@ -738,12 +839,8 @@ const StaffPage = () => {
                                 )}
                               </div>
                               <div>
-                                <div className="font-bold text-gray-900 text-lg">
-                                  {member.name}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  ID: {member._id?.slice(-8)}
-                                </div>
+                                <div className="font-bold text-gray-900 text-lg">{member.name}</div>
+                                <div className="text-sm text-gray-500">ID: {member._id?.slice(-8)}</div>
                               </div>
                             </div>
                           </td>
@@ -794,13 +891,9 @@ const StaffPage = () => {
                               <button
                                 onClick={() => {
                                   alert(
-                                    `Détails de ${member.name}\n\nFonction: ${
-                                      member.role
-                                    }\nService: ${
+                                    `Détails de ${member.name}\n\nFonction: ${member.role}\nService: ${
                                       member.specialty || "Non renseigné"
-                                    }\nStatut: ${
-                                      member.status || "Actif"
-                                    }\nTéléphone: ${
+                                    }\nStatut: ${member.status || "Actif"}\nTéléphone: ${
                                       member.phone || "—"
                                     }\nEmail: ${member.email || "—"}`
                                   );
@@ -810,6 +903,7 @@ const StaffPage = () => {
                               >
                                 👁
                               </button>
+
                               <button
                                 onClick={() => {
                                   setSelectedStaff(member);
@@ -820,6 +914,7 @@ const StaffPage = () => {
                               >
                                 <FiEdit className="text-xl" />
                               </button>
+
                               <button
                                 onClick={() => handleDelete(member._id)}
                                 className="p-3 text-red-700 hover:text-white hover:bg-red-700 rounded-xl transition-all duration-300 border-2 border-red-700 hover:border-red-600"
@@ -853,10 +948,7 @@ const StaffPage = () => {
 
         {/* MODALS */}
         {isAddModalOpen && (
-          <AddStaffModal
-            onClose={() => setIsAddModalOpen(false)}
-            onAddStaff={addStaff}
-          />
+          <AddStaffModal onClose={() => setIsAddModalOpen(false)} onAddStaff={addStaff} />
         )}
 
         {isEditModalOpen && (

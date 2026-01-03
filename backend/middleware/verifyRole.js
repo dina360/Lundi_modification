@@ -5,19 +5,27 @@
  * 
  * @param {Array<string>} allowedRoles - ['admin', 'medecin', 'secretaire']
  */
-const verifyRole = (allowedRoles) => {
-  return (req, res, next) => {
-    console.log(" 🔐 Rôle demandé:", allowedRoles); // ✅ Log
-    console.log(" 🔐 Rôle de l'utilisateur:", req.user.role); // ✅ Log
+const verifyRole = (allowedRoles = []) => {
+  // Normaliser les rôles autorisés en minuscules
+  const allowed = allowedRoles.map((r) => String(r).toLowerCase());
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Accès refusé" });
+  return (req, res, next) => {
+    console.log(" 🔐 Rôle demandé:", allowedRoles); // Log roles demandés
+    console.log(" 🔐 Rôle de l'utilisateur:", req.user?.role); // Log rôle utilisateur
+
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({ message: "Utilisateur non authentifié" });
     }
 
-    console.log(" ✅ Rôle vérifié avec succès"); // ✅ Log
+    const role = String(req.user.role).toLowerCase();
+
+    if (!allowed.includes(role)) {
+      return res.status(403).json({ message: "Accès refusé : rôle non autorisé" });
+    }
+
+    console.log(" ✅ Rôle vérifié avec succès"); // Log succès
     next();
   };
 };
 
 module.exports = verifyRole;
-

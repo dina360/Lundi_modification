@@ -11,9 +11,13 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
+    // 🔹 Vérification supplémentaire utile
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "JWT_SECRET manquant côté serveur" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ On garde les infos importantes, avec userId bien nommé
     req.user = {
       userId: decoded.userId,
       role: decoded.role,

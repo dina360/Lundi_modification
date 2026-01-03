@@ -1,11 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Sidebar from "./Sidebar";
-import { 
-  FiLayers, FiPlus, FiTool, FiTrash2, FiEdit, FiSearch, 
-  FiFilter, FiDownload, FiRefreshCw, FiEye, FiClock,
-  FiCheckCircle, FiXCircle, FiAlertCircle, FiHome,
-  FiUsers, FiActivity, FiBarChart2
+import {
+  FiLayers,
+  FiPlus,
+  FiTool,
+  FiTrash2,
+  FiEdit,
+  FiSearch,
+  FiFilter,
+  FiDownload,
+  FiRefreshCw,
+  FiEye,
+  FiClock,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiHome,
+  FiUsers,
 } from "react-icons/fi";
 
 const initialRoomForm = {
@@ -25,8 +36,23 @@ const initialEquipmentForm = {
   lastMaintenance: "",
 };
 
+const ROOM_TYPES = [
+  "",
+  "Consultation",
+  "Bloc opératoire",
+  "Hospitalisation",
+  "Réanimation",
+  "Imagerie",
+  "Laboratoire",
+  "Urgences",
+  "Autre",
+];
+
+const ROOM_STATUS = ["", "disponible", "occupée", "en_maintenance", "hors_service"];
+
 function SallesBlocs() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,24 +62,34 @@ function SallesBlocs() {
 
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+
   const [selectedRoom, setSelectedRoom] = useState(null);
 
+  // Search + Filters (corrigés)
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [floorFilter, setFloorFilter] = useState("");
+  const [minCapacity, setMinCapacity] = useState("");
 
   const API_URL = "http://localhost:5000/api/salles";
+
+  const authHeaders = () => {
+    const token = localStorage.getItem("authToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   const fetchRooms = async () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem("authToken");
-      const res = await axios.get(API_URL, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setRooms(res.data || []);
+      const res = await axios.get(API_URL, { headers: authHeaders() });
+      setRooms(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Erreur fetchRooms:", err);
       setError("Erreur lors du chargement des salles");
+      setRooms([]);
     } finally {
       setLoading(false);
     }
@@ -103,20 +139,19 @@ function SallesBlocs() {
     e.preventDefault();
     try {
       setError(null);
-      const token = localStorage.getItem("authToken");
+
       const config = {
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...authHeaders(),
         },
       };
 
       let res;
       if (isEditMode && roomForm._id) {
         res = await axios.put(`${API_URL}/${roomForm._id}`, roomForm, config);
-        setRooms((prev) =>
-          prev.map((r) => (r._id === roomForm._id ? res.data : r))
-        );
+        setRooms((prev) => prev.map((r) => (r._id === roomForm._id ? res.data : r)));
+        if (selectedRoom?._id === roomForm._id) setSelectedRoom(res.data);
       } else {
         res = await axios.post(API_URL, roomForm, config);
         setRooms((prev) => [...prev, res.data]);
@@ -135,10 +170,7 @@ function SallesBlocs() {
 
     try {
       setError(null);
-      const token = localStorage.getItem("authToken");
-      await axios.delete(`${API_URL}/${roomId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      await axios.delete(`${API_URL}/${roomId}`, { headers: authHeaders() });
       setRooms((prev) => prev.filter((r) => r._id !== roomId));
       if (selectedRoom && selectedRoom._id === roomId) {
         setSelectedRoom(null);
@@ -160,23 +192,19 @@ function SallesBlocs() {
 
     try {
       setError(null);
-      const token = localStorage.getItem("authToken");
       const res = await axios.post(
         `${API_URL}/${selectedRoom._id}/equipements`,
         equipmentForm,
         {
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...authHeaders(),
           },
         }
       );
 
       const updatedRoom = res.data;
-
-      setRooms((prev) =>
-        prev.map((r) => (r._id === updatedRoom._id ? updatedRoom : r))
-      );
+      setRooms((prev) => prev.map((r) => (r._id === updatedRoom._id ? updatedRoom : r)));
       setSelectedRoom(updatedRoom);
       setEquipmentForm(initialEquipmentForm);
     } catch (err) {
@@ -190,43 +218,88 @@ function SallesBlocs() {
 
     try {
       setError(null);
-      const token = localStorage.getItem("authToken");
-      const res = await axios.delete(
-        `${API_URL}/${roomId}/equipements/${equipementId}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
-      );
+      const res = await axios.delete(`${API_URL}/${roomId}/equipements/${equipementId}`, {
+        headers: authHeaders(),
+      });
 
       const updatedRoom = res.data;
-
-      setRooms((prev) =>
-        prev.map((r) => (r._id === updatedRoom._id ? updatedRoom : r))
-      );
-      if (selectedRoom && selectedRoom._id === updatedRoom._id) {
-        setSelectedRoom(updatedRoom);
-      }
+      setRooms((prev) => prev.map((r) => (r._id === updatedRoom._id ? updatedRoom : r)));
+      if (selectedRoom && selectedRoom._id === updatedRoom._id) setSelectedRoom(updatedRoom);
     } catch (err) {
       console.error("Erreur handleDeleteEquipment:", err);
       setError("Erreur lors de la suppression de l'équipement");
     }
   };
 
-  const filteredRooms = rooms.filter((room) => {
-    const term = search.toLowerCase();
-    return (
-      room.name?.toLowerCase().includes(term) ||
-      room.code?.toLowerCase().includes(term) ||
-      room.type?.toLowerCase().includes(term) ||
-      room.floor?.toLowerCase().includes(term)
-    );
-  });
+  // ✅ Filtrage complet (search + type + status + floor + minCapacity)
+  const filteredRooms = useMemo(() => {
+    const term = (search || "").trim().toLowerCase();
+    const floorTerm = (floorFilter || "").trim().toLowerCase();
+    const minCap = minCapacity === "" ? null : Number(minCapacity);
+
+    return (rooms || []).filter((room) => {
+      const matchSearch =
+        !term ||
+        room.name?.toLowerCase().includes(term) ||
+        room.code?.toLowerCase().includes(term) ||
+        room.type?.toLowerCase().includes(term) ||
+        room.floor?.toLowerCase().includes(term);
+
+      const matchType = !typeFilter || (room.type || "") === typeFilter;
+
+      const matchStatus =
+        !statusFilter || (room.status || "").toLowerCase() === statusFilter.toLowerCase();
+
+      const matchFloor =
+        !floorTerm || (room.floor || "").toLowerCase().includes(floorTerm);
+
+      const matchCap = minCap === null || Number(room.capacity || 0) >= minCap;
+
+      return matchSearch && matchType && matchStatus && matchFloor && matchCap;
+    });
+  }, [rooms, search, typeFilter, statusFilter, floorFilter, minCapacity]);
+
+  const resetFilters = () => {
+    setSearch("");
+    setTypeFilter("");
+    setStatusFilter("");
+    setFloorFilter("");
+    setMinCapacity("");
+  };
+
+  // ✅ Export CSV (sur filteredRooms)
+  const exportCSV = () => {
+    const headers = ["Code", "Nom", "Type", "Étage/Secteur", "Capacité", "Statut", "Nb Équipements"];
+    const rows = filteredRooms.map((r) => [
+      r.code || "",
+      r.name || "",
+      r.type || "",
+      r.floor || "",
+      String(r.capacity ?? ""),
+      r.status || "",
+      String((r.equipments || []).length),
+    ]);
+
+    const csv = [
+      headers.join(";"),
+      ...rows.map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(";")),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "salles_neohealth.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
+    switch ((status || "").toLowerCase()) {
       case "disponible":
         return "bg-green-100 text-green-800 border-green-300";
       case "occupée":
+      case "occupee":
         return "bg-red-100 text-red-800 border-red-300";
       case "en_maintenance":
         return "bg-yellow-100 text-yellow-800 border-yellow-300";
@@ -238,7 +311,7 @@ function SallesBlocs() {
   };
 
   const getEquipmentStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
+    switch ((status || "").toLowerCase()) {
       case "fonctionnel":
         return "bg-green-100 text-green-800";
       case "en_maintenance":
@@ -252,36 +325,31 @@ function SallesBlocs() {
 
   const stats = {
     total: rooms.length,
-    available: rooms.filter(r => r.status?.toLowerCase() === "disponible").length,
-    inUse: rooms.filter(r => r.status?.toLowerCase() === "occupée").length,
-    maintenance: rooms.filter(r => r.status?.toLowerCase() === "en_maintenance").length
+    available: rooms.filter((r) => (r.status || "").toLowerCase() === "disponible").length,
+    inUse: rooms.filter((r) => (r.status || "").toLowerCase() === "occupée").length,
+    maintenance: rooms.filter((r) => (r.status || "").toLowerCase() === "en_maintenance").length,
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        active="salles"
-      />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} active="salles" />
 
       <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"}`}>
         {/* Header */}
         <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
-                  <FiHome className="text-2xl text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white">Salles & Blocs Opératoires</h1>
-                  <p className="text-blue-100 mt-2 text-lg">
-                    Centre Hospitalier NeoHealth • Gestion des infrastructures médicales
-                  </p>
-                </div>
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30">
+                <FiHome className="text-2xl text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Salles & Blocs Opératoires</h1>
+                <p className="text-blue-100 mt-2 text-lg">
+                  Centre Hospitalier NeoHealth • Gestion des infrastructures médicales
+                </p>
               </div>
             </div>
+
             <button
               onClick={openAddRoomModal}
               className="flex items-center space-x-3 bg-white text-blue-900 hover:bg-blue-50 px-6 py-4 rounded-xl font-bold transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 border-white"
@@ -344,7 +412,7 @@ function SallesBlocs() {
         </header>
 
         <div className="max-w-7xl mx-auto px-4">
-          {/* Search and Controls */}
+          {/* Search + Controls */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
             <div className="flex items-center justify-between">
               <div className="relative flex-1 max-w-2xl">
@@ -357,16 +425,25 @@ function SallesBlocs() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
+
               <div className="flex items-center space-x-4 ml-6">
-                <button className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200">
+                <button
+                  onClick={() => setFiltersOpen((v) => !v)}
+                  className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+                >
                   <FiFilter className="text-lg" />
                   <span>Filtrer</span>
                 </button>
-                <button className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200">
+
+                <button
+                  onClick={exportCSV}
+                  className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
+                >
                   <FiDownload className="text-lg" />
                   <span>Exporter</span>
                 </button>
-                <button 
+
+                <button
                   className="flex items-center space-x-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-xl font-semibold transition-all duration-300 border-2 border-blue-200"
                   onClick={fetchRooms}
                 >
@@ -375,9 +452,85 @@ function SallesBlocs() {
                 </button>
               </div>
             </div>
+
+            {/* ✅ Panneau filtres */}
+            {filtersOpen && (
+              <div className="mt-6 p-5 bg-gray-50 rounded-2xl border-2 border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                    >
+                      {ROOM_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t === "" ? "Tous" : t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                    >
+                      {ROOM_STATUS.map((s) => (
+                        <option key={s} value={s}>
+                          {s === "" ? "Tous" : s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Étage / Secteur</label>
+                    <input
+                      value={floorFilter}
+                      onChange={(e) => setFloorFilter(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      placeholder="RDC, Bloc A..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Capacité minimale</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={minCapacity}
+                      onChange={(e) => setMinCapacity(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
+                      placeholder="Ex: 10"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-5">
+                  <button
+                    onClick={resetFilters}
+                    className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-xl transition-all duration-300"
+                    type="button"
+                  >
+                    Réinitialiser
+                  </button>
+                  <button
+                    onClick={() => setFiltersOpen(false)}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    type="button"
+                  >
+                    Appliquer
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Error Message */}
+          {/* Error */}
           {error && (
             <div className="mb-8 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-xl font-medium flex items-center">
               <FiAlertCircle className="mr-3 text-red-500" />
@@ -399,9 +552,9 @@ function SallesBlocs() {
                   {rooms.length === 0 ? "Aucune salle enregistrée" : "Aucun résultat"}
                 </h3>
                 <p className="text-gray-600 mb-8 text-lg">
-                  {rooms.length === 0 
-                    ? "Commencez par ajouter votre première salle ou bloc opératoire." 
-                    : "Aucune salle ne correspond à votre recherche."}
+                  {rooms.length === 0
+                    ? "Commencez par ajouter votre première salle ou bloc opératoire."
+                    : "Aucune salle ne correspond à votre recherche / filtres."}
                 </p>
                 <button
                   onClick={openAddRoomModal}
@@ -417,32 +570,17 @@ function SallesBlocs() {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gradient-to-r from-blue-800 to-blue-900 border-b-4 border-blue-700">
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Code
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Nom
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Étage / Secteur
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Capacité
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Statut
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Équipements
-                        </th>
-                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Actions
-                        </th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Code</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Nom</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Type</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Étage / Secteur</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Capacité</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Statut</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Équipements</th>
+                        <th className="px-8 py-6 text-left text-sm font-bold text-white uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
+
                     <tbody className="divide-y divide-gray-200">
                       {filteredRooms.map((room) => (
                         <tr key={room._id} className="hover:bg-blue-50/50 transition-colors duration-200 group">
@@ -451,30 +589,36 @@ function SallesBlocs() {
                               {room.code}
                             </span>
                           </td>
+
                           <td className="px-8 py-6">
                             <div className="font-bold text-gray-900 text-lg">{room.name}</div>
                           </td>
+
                           <td className="px-8 py-6">
                             <span className="bg-gray-100 text-gray-800 px-4 py-2 rounded-full font-medium text-sm">
-                              {room.type}
+                              {room.type || "—"}
                             </span>
                           </td>
+
                           <td className="px-8 py-6">
                             <div className="flex items-center text-gray-700">
                               <FiLayers className="mr-3 text-blue-900" />
-                              {room.floor}
+                              {room.floor || "—"}
                             </div>
                           </td>
+
                           <td className="px-8 py-6">
                             <span className="bg-gray-100 text-gray-800 px-4 py-2 rounded-full font-bold">
                               {room.capacity} pers.
                             </span>
                           </td>
+
                           <td className="px-8 py-6">
                             <span className={`inline-flex px-4 py-2 text-sm font-bold rounded-full border-2 ${getStatusColor(room.status)}`}>
-                              {room.status || "Disponible"}
+                              {room.status || "disponible"}
                             </span>
                           </td>
+
                           <td className="px-8 py-6">
                             <button
                               onClick={() => handleSelectRoom(room)}
@@ -485,6 +629,7 @@ function SallesBlocs() {
                               <span>{room.equipments?.length || 0}</span>
                             </button>
                           </td>
+
                           <td className="px-8 py-6">
                             <div className="flex items-center space-x-3">
                               <button
@@ -494,6 +639,7 @@ function SallesBlocs() {
                               >
                                 <FiEye className="text-xl" />
                               </button>
+
                               <button
                                 onClick={() => openEditRoomModal(room)}
                                 className="p-3 text-green-700 hover:text-white hover:bg-green-700 rounded-xl transition-all duration-300 border-2 border-green-700 hover:border-green-600"
@@ -501,6 +647,7 @@ function SallesBlocs() {
                               >
                                 <FiEdit className="text-xl" />
                               </button>
+
                               <button
                                 onClick={() => handleDeleteRoom(room._id)}
                                 className="p-3 text-red-700 hover:text-white hover:bg-red-700 rounded-xl transition-all duration-300 border-2 border-red-700 hover:border-red-600"
@@ -516,21 +663,10 @@ function SallesBlocs() {
                   </table>
                 </div>
 
-                {/* Table Footer */}
                 <div className="px-8 py-6 bg-gray-50 border-t border-gray-200">
                   <div className="flex items-center justify-between">
-                    <div className="text-gray-700 font-semibold">
-                      {filteredRooms.length} salle(s) trouvée(s)
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <button className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                        ← Précédent
-                      </button>
-                      <span className="text-gray-700">Page 1 sur 1</span>
-                      <button className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                        Suivant →
-                      </button>
-                    </div>
+                    <div className="text-gray-700 font-semibold">{filteredRooms.length} salle(s) trouvée(s)</div>
+                    <div className="text-gray-600 text-sm">Page 1 sur 1</div>
                   </div>
                 </div>
               </>
@@ -563,9 +699,7 @@ function SallesBlocs() {
               <form onSubmit={handleAddEquipment} className="mb-8">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom de l'équipement
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'équipement</label>
                     <input
                       type="text"
                       name="name"
@@ -578,9 +712,7 @@ function SallesBlocs() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Catégorie
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
                     <select
                       name="category"
                       value={equipmentForm.category}
@@ -599,9 +731,7 @@ function SallesBlocs() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quantité
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantité</label>
                     <input
                       type="number"
                       min={1}
@@ -613,9 +743,7 @@ function SallesBlocs() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Statut
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
                     <select
                       name="status"
                       value={equipmentForm.status}
@@ -646,24 +774,12 @@ function SallesBlocs() {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gradient-to-r from-blue-800 to-blue-900 border-b-4 border-blue-700">
-                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Équipement
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Catégorie
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Quantité
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Statut
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Dernière maintenance
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">
-                          Actions
-                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">Équipement</th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">Catégorie</th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">Quantité</th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">Statut</th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">Dernière maintenance</th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -690,9 +806,7 @@ function SallesBlocs() {
                           <td className="px-6 py-4">
                             <div className="flex items-center text-gray-600">
                               <FiClock className="mr-2" />
-                              {eq.lastMaintenance
-                                ? new Date(eq.lastMaintenance).toLocaleDateString("fr-FR")
-                                : "N/A"}
+                              {eq.lastMaintenance ? new Date(eq.lastMaintenance).toLocaleDateString("fr-FR") : "N/A"}
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -720,7 +834,7 @@ function SallesBlocs() {
           )}
         </div>
 
-        {/* Room Modal */}
+        {/* Room Modal (inchangé, ton modal est OK) */}
         {isRoomModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden border-2 border-gray-100">
@@ -750,9 +864,7 @@ function SallesBlocs() {
                 <form onSubmit={handleSubmitRoom} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Nom
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Nom</label>
                       <input
                         type="text"
                         name="name"
@@ -763,10 +875,9 @@ function SallesBlocs() {
                         placeholder="Ex: Salle de consultation 1"
                       />
                     </div>
+
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Code
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Code</label>
                       <input
                         type="text"
                         name="code"
@@ -777,10 +888,9 @@ function SallesBlocs() {
                         placeholder="Ex: SC-01"
                       />
                     </div>
+
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Type
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Type</label>
                       <select
                         name="type"
                         value={roomForm.type}
@@ -798,10 +908,9 @@ function SallesBlocs() {
                         <option value="Autre">Autre</option>
                       </select>
                     </div>
+
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Étage / Secteur
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Étage / Secteur</label>
                       <input
                         type="text"
                         name="floor"
@@ -811,10 +920,9 @@ function SallesBlocs() {
                         placeholder="RDC, 1er étage, Bloc A..."
                       />
                     </div>
+
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Capacité
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Capacité</label>
                       <input
                         type="number"
                         min={1}
@@ -824,10 +932,9 @@ function SallesBlocs() {
                         className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all duration-300 font-medium"
                       />
                     </div>
+
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Statut
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Statut</label>
                       <select
                         name="status"
                         value={roomForm.status}

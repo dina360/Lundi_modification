@@ -1,3 +1,4 @@
+// src/RendezVousPage.js
 import React, { useState } from "react";
 import { FiCalendar, FiClock, FiUsers, FiBarChart2 } from "react-icons/fi";
 import CalendrierRendezVous from "./CalendrierRendezVous";
@@ -14,19 +15,14 @@ function RendezVousPage() {
     total: 8,
     completed: 5,
     upcoming: 3,
-    cancelled: 0
+    cancelled: 0,
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        active="rendezvous"
-      />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} active="rendezvous" />
 
       <div className={`transition-all duration-300 min-h-screen ${sidebarOpen ? "ml-72" : "ml-20"}`}>
-        {/* Header */}
         <header className="bg-gradient-to-r from-blue-800 via-royalblue-900 to-blue-900 text-white p-8 -mt-8 -mx-8 mb-8 shadow-2xl border-b-4 border-gold-500">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
@@ -36,9 +32,7 @@ function RendezVousPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold text-white">Gestion des Rendez-vous</h1>
-                  <p className="text-blue-100 mt-2 text-lg">
-                    Planification intelligente avec suivi en temps réel
-                  </p>
+                  <p className="text-blue-100 mt-2 text-lg">Planification intelligente avec suivi en temps réel</p>
                 </div>
               </div>
             </div>
@@ -50,12 +44,11 @@ function RendezVousPage() {
             </div>
           </div>
 
-          {/* Stats Today */}
           <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-white text-sm opacity-90">Total Aujourd'hui</div>
+                  <div className="text-white text-sm opacity-90">Total Aujourd&apos;hui</div>
                   <div className="text-2xl font-bold text-white">{todayStats.total}</div>
                 </div>
                 <FiCalendar className="text-2xl text-white/70" />
@@ -91,33 +84,24 @@ function RendezVousPage() {
           </div>
         </header>
 
-        {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 pb-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            {/* Calendrier - 2 colonnes */}
             <div className="lg:col-span-2">
-              <CalendrierRendezVous
-                onDateSelect={setSelectedDate}
-                refresh={refresh}
-              />
+              <CalendrierRendezVous onDateSelect={setSelectedDate} refresh={refresh} />
             </div>
 
-            {/* Formulaire - 1 colonne */}
             <div>
               <FormulaireRendezVous
                 selectedDate={selectedDate}
                 onSuccess={() => {
-                  setRefresh(!refresh);
+                  setRefresh((v) => !v);
                   setSelectedDate(null);
                 }}
               />
             </div>
           </div>
 
-          {/* Liste des RDV */}
-          <div>
-            <ListeRendezVous refresh={refresh} />
-          </div>
+          <ListeRendezVous refresh={refresh} />
         </div>
       </div>
     </div>

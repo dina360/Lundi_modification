@@ -1,10 +1,9 @@
 // backend/routes/medecinRoutes.js
-
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const User = require("../models/User");
-const Doctor = require("../models/Doctor"); // Assure-toi que ce modèle inclut le champ `userId`
+const Doctor = require("../models/Doctor"); // Inclut le champ `userId`
 const authMiddleware = require("../middleware/authMiddleware");
 const verifyRole = require("../middleware/verifyRole");
 
@@ -20,7 +19,6 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
-
 const upload = multer({ storage });
 
 // 📸 Upload ou mise à jour de la photo du médecin

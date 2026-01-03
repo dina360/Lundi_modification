@@ -67,4 +67,9 @@ const roomSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Room", roomSchema);
+/**
+ * ✅ IMPORTANT :
+ * 1) Empêche "OverwriteModelError" si le modèle Room est déjà compilé
+ * 2) Force la collection MongoDB à être exactement "rooms"
+ */
+module.exports = mongoose.models.Room || mongoose.model("Room", roomSchema, "rooms");

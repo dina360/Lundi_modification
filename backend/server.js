@@ -1,157 +1,225 @@
 // backend/server.js
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const http = require('http');
-const socketIo = require('socket.io');
-const path = require('path');
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const http = require("http");
+const path = require("path");
+const socketIo = require("socket.io");
 
-// Import des routes
-const authRoutes = require('./routes/authRoutes');
-const patientRoutes = require('./routes/patientRoutes');
-const dashboardRoutes = require('./routes/dashboard');
-const dashboardAdvanced = require('./routes/dashboardAdvanced');
-const appointmentRoutes = require('./routes/appointmentRoutes');
-const medecinRoutes = require('./routes/medecinRoutes');
-const consultationRoutes = require('./routes/consultationRoutes');
-const chatRoutes = require('./routes/chatRoutes'); // ✅ Ajoute cette ligne
-const disponibilitesRoutes = require('./routes/disponibilitesRoutes'); // ✅ Ajoute cette ligne
+// Routes
+const authRoutes = require("./routes/authRoutes");
+const patientRoutes = require("./routes/patientRoutes");
+const dashboardRoutes = require("./routes/dashboard");
+const dashboardAdvanced = require("./routes/dashboardAdvanced");
+const appointmentRoutes = require("./routes/appointmentRoutes");
+const medecinRoutes = require("./routes/medecinRoutes");
+const consultationRoutes = require("./routes/consultationRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const disponibilitesRoutes = require("./routes/disponibilitesRoutes");
+const doctorRoutes = require("./routes/doctorRoutes");
+const staffRoutes = require("./routes/staffRoutes");
+const roomRoutes = require("./routes/roomRoutes");
+const maladeRdvRoutes = require("./routes/maladeRdvRoutes");
+const predictionRoutes = require("./routes/prediction");
+const secretaireRoutes = require("./routes/secretaireRoutes");
 
-// Middleware
-const authMiddleware = require('./middleware/authMiddleware');
-const verifyRole = require('./middleware/verifyRole');
+// Middlewares
+const authMiddleware = require("./middleware/authMiddleware");
+const verifyRole = require("./middleware/verifyRole");
 
+// ============================
+// Initialisation serveur
+// ============================
 const app = express();
-const server = http.createServer(app); // ✅ Créer un serveur HTTP
+const server = http.createServer(app);
+
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", // ✅ Autoriser ton frontend
-    methods: ["GET", "POST"]
-  }
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+  },
 });
+
+// Rendre io accessible partout
+global.io = io;
 
 const port = process.env.PORT || 5000;
 
-// ============================
-// Middlewares globaux
-// ============================
+/* =========================
+   Middlewares globaux
+========================= */
 app.use(bodyParser.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Important pour les requêtes preflight
+app.options("*", cors());
+
+// uploads statiques
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Middleware de log simple
+// Log des requêtes
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// ============================
-// Connexion MongoDB
-// ============================
-const dbURL = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hopital';
+/* =========================
+   Connexion MongoDB
+========================= */
+const dbURL = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/hospital";
+
 mongoose
-  .connect(dbURL, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('✅ Connexion MongoDB réussie'))
-  .catch((err) => console.error('❌ Erreur MongoDB:', err));
+  .connect(dbURL)
+  .then(() => console.log("✅ Connexion MongoDB réussie"))
+  .catch((err) => console.error("❌ Erreur MongoDB :", err));
 
-// ============================
-// Routes publiques / auth
-// ============================
-app.use('/api/auth', authRoutes);
+/* =========================
+   Routes PUBLIQUES
+========================= */
+app.use("/api/auth", authRoutes);
 
-// ============================
-// Routes protégées (staff)
-// ============================
+/* =========================
+   Routes PROTÉGÉES
+========================= */
 
-// Patients : admin / medecin / secretaire
+// Malade RDV (patient)
 app.use(
-  '/api/patients',
+  "/api/malade/rdv",
   authMiddleware,
-  verifyRole(['admin', 'medecin', 'secretaire']),
+  verifyRole(["patient"]),
+  maladeRdvRoutes
+);
+
+// Patients (admin/medecin/secretaire)
+app.use(
+  "/api/patients",
+  authMiddleware,
+  verifyRole(["admin", "medecin", "secretaire"]),
   patientRoutes
 );
 
-// Appointments
 app.use(
-  '/api/appointments',
+  "/api/secretaire",
   authMiddleware,
-  verifyRole(['admin', 'medecin', 'secretaire']),
+  verifyRole(["admin", "medecin", "secretaire"]),
+  secretaireRoutes
+);
+
+// Personnel (admin)
+app.use("/api/staff", authMiddleware, verifyRole(["admin"]), staffRoutes);
+
+// Appointments (admin/medecin/secretaire)
+app.use(
+  "/api/appointments",
+  authMiddleware,
+  verifyRole(["admin", "medecin", "secretaire"]),
   appointmentRoutes
 );
 
-// Dashboard
+// Doctors (admin)
+app.use("/api/doctors", authMiddleware, verifyRole(["admin"]), doctorRoutes);
+
+// ✅✅✅ SALLES (admin + secretaire)  <-- CORRECTION ICI
 app.use(
-  '/api/dashboard/advanced',
+  "/api/salles",
   authMiddleware,
-  verifyRole(['admin', 'medecin', 'secretaire']),
+  verifyRole(["admin", "secretaire"]),
+  roomRoutes
+);
+
+// Dashboard avancé
+app.use(
+  "/api/dashboard/advanced",
+  authMiddleware,
+  verifyRole(["admin", "medecin", "secretaire"]),
   dashboardAdvanced
 );
+
+// Dashboard simple
 app.use(
-  '/api/dashboard',
+  "/api/dashboard",
   authMiddleware,
-  verifyRole(['admin', 'medecin', 'secretaire']),
+  verifyRole(["admin", "medecin", "secretaire"]),
   dashboardRoutes
 );
 
-// Médecins : upload photo + autres routes
+// Médecins (admin/medecin)
 app.use(
-  '/api/medecins',
+  "/api/medecins",
   authMiddleware,
-  verifyRole(['admin', 'medecin']),
+  verifyRole(["admin", "medecin"]),
   medecinRoutes
 );
 
-// Consultations et disonibilités : medecin uniquement
-app.use('/api/consultations', authMiddleware, verifyRole(['medecin']), consultationRoutes);
-app.use('/api/disponibilites', authMiddleware, verifyRole(['medecin']), disponibilitesRoutes); // ✅ Ajoute cette ligne
+// Consultations + disponibilités (medecin)
+app.use(
+  "/api/consultations",
+  authMiddleware,
+  verifyRole(["medecin"]),
+  consultationRoutes
+);
 
-// ✅ Nouvelle route : Chat
-app.use('/api/chat', authMiddleware, verifyRole(['medecin']), chatRoutes);
+app.use(
+  "/api/disponibilites",
+  authMiddleware,
+  verifyRole(["medecin"]),
+  disponibilitesRoutes
+);
 
-// ============================
-// Fichiers statiques (uploads)
-// ============================
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Chat (medecin)
+app.use("/api/chat", authMiddleware, verifyRole(["medecin"]), chatRoutes);
 
-// ============================
-// 404
-// ============================
-app.use((req, res, next) => {
-  res.status(404).json({ error: 'Route non trouvée' });
+// IA (patient)
+app.use(
+  "/api/prediction",
+  authMiddleware,
+  verifyRole(["patient"]),
+  predictionRoutes
+);
+
+/* =========================
+   Route 404
+========================= */
+app.use((req, res) => {
+  res.status(404).json({ error: "Route non trouvée" });
 });
 
-// ============================
-// Socket.io
-// ============================
+/* =========================
+   Socket.io
+========================= */
 io.use((socket, next) => {
-  // Ici, tu peux vérifier l'authentification via JWT si tu veux
   next();
 });
 
-io.on('connection', (socket) => {
-  console.log('Un utilisateur s\'est connecté au chat');
+io.on("connection", (socket) => {
+  console.log("Un utilisateur s'est connecté au chat");
 
-  socket.on('joinRoom', (roomId) => {
+  socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
-    console.log(`Socket ${socket.id} a rejoint le salon ${roomId}`);
+    console.log(`📌 Socket ${socket.id} a rejoint le salon ${roomId}`);
   });
 
-  socket.on('sendMessage', (data) => {
-    // Diffuser le message à tous les utilisateurs du salon
-    io.to(data.roomId).emit('newMessage', data);
+  socket.on("sendMessage", (data) => {
+    io.to(data.roomId).emit("newMessage", data);
   });
 
-  socket.on('disconnect', () => {
-    console.log('Un utilisateur s\'est déconnecté du chat');
+  socket.on("disconnect", () => {
+    console.log("Un utilisateur s'est déconnecté du chat");
   });
 });
-// ✅ Exporte io globalement pour y accéder dans les routes
-global.io = io; // 🔥 Ajoute cette ligne
-// ============================
-// Démarrage serveur
-// ============================
-server.listen(port, () => // ✅ Écoute sur le serveur HTTP
+
+/* =========================
+   Démarrage serveur
+========================= */
+server.listen(port, () =>
   console.log(`🚀 Serveur démarré sur http://localhost:${port}`)
 );
