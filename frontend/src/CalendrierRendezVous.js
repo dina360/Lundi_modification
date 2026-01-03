@@ -29,7 +29,7 @@ export default function CalendrierRendezVous({ onDateSelect, refresh }) {
     if (!from || !to) return;
     setError("");
     try {
-      const res = await api.get(`/appointments?from=${from}&to=${to}`);
+      const res = await api.get(`/api/appointments?from=${from}&to=${to}`);
       setAppointments(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);

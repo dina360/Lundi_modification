@@ -66,7 +66,7 @@ export default function SecretaireHome() {
       try {
         const token = localStorage.getItem("authToken");
 
-        const res = await fetch(`${API_BASE_URL}/secretaire/dashboard`, {
+        const res = await fetch(`${API_BASE_URL}/api/secretaire/dashboard`, {
           credentials: "include",
           signal: controller.signal,
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,

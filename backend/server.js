@@ -63,7 +63,6 @@ app.use(
 // Important pour les requêtes preflight
 app.options("*", cors());
 
-
 // uploads statiques
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

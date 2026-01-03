@@ -1,6 +1,7 @@
 // backend/models/patientModel.js
 const mongoose = require("mongoose");
 
+// 🔹 Sous-schéma pour les documents médicaux
 const medicalRecordSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
@@ -10,6 +11,7 @@ const medicalRecordSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// 🔹 Schéma principal du patient
 const patientSchema = new mongoose.Schema(
   {
     // =========================
@@ -47,12 +49,12 @@ const patientSchema = new mongoose.Schema(
 
     allergies: { type: String, default: "", trim: true },
 
-    medicalHistory: { type: String, default: "", trim: true }, // antécédents
+    medicalHistory: { type: String, default: "", trim: true },
 
-    notes: { type: String, default: "", trim: true }, // notes internes
+    notes: { type: String, default: "", trim: true },
 
     // =========================
-    // RDV / dossiers médicaux
+    // RDV et dossiers médicaux
     // =========================
     lastAppointment: { type: Date, default: null, index: true },
     nextAppointment: { type: Date, default: null, index: true },

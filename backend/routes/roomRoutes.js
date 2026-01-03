@@ -1,7 +1,6 @@
 // backend/routes/roomRoutes.js
 const express = require("express");
 const router = express.Router();
-
 const verifyRole = require("../middleware/verifyRole");
 const Room = require("../models/roomModel");
 const RoomReservation = require("../models/RoomReservation");
@@ -27,15 +26,14 @@ function combineDateAndTime(dateStr, timeStr) {
 
 function normalizeRoom(roomDoc) {
   const r = roomDoc.toObject ? roomDoc.toObject() : roomDoc;
-  const equipements =
-    r.equipements && r.equipements.length > 0 ? r.equipements : r.equipments || [];
+  const equipements = r.equipements && r.equipements.length > 0 ? r.equipements : r.equipments || [];
   return { ...r, equipements };
 }
 
-/* =========================================================
+/* =========================
    DISPONIBILITÉ
    GET /api/salles/available?date=YYYY-MM-DD&start=HH:mm&end=HH:mm
-========================================================= */
+========================= */
 router.get("/available", verifyRole(["admin", "secretaire"]), async (req, res) => {
   try {
     const { date, start, end } = req.query;
@@ -54,9 +52,7 @@ router.get("/available", verifyRole(["admin", "secretaire"]), async (req, res) =
       return res.status(400).json({ message: "Créneau invalide" });
     }
 
-    const rooms = await Room.find({
-      status: { $in: ["disponible", "available", "Disponible"] },
-    }).sort({ name: 1 });
+    const rooms = await Room.find({ status: { $in: ["disponible", "available", "Disponible"] } }).sort({ name: 1 });
 
     const conflicts = await RoomReservation.find({
       status: "confirmée",
@@ -66,9 +62,7 @@ router.get("/available", verifyRole(["admin", "secretaire"]), async (req, res) =
 
     const busyIds = new Set(conflicts.map((c) => String(c.salle)));
 
-    const available = rooms
-      .filter((r) => !busyIds.has(String(r._id)))
-      .map(normalizeRoom);
+    const available = rooms.filter((r) => !busyIds.has(String(r._id))).map(normalizeRoom);
 
     return res.json(available);
   } catch (e) {
@@ -79,25 +73,16 @@ router.get("/available", verifyRole(["admin", "secretaire"]), async (req, res) =
 
 /* =========================
    RÉSERVATIONS - CREATE
-   POST /api/salles/reservations
 ========================= */
 router.post("/reservations", verifyRole(["secretaire"]), async (req, res) => {
   try {
     const { salleId, date, start, end, motif } = req.body;
 
-    if (!salleId || !start || !end) {
-      return res.status(400).json({ message: "Champs manquants (salleId, start, end)" });
-    }
+    if (!salleId || !start || !end) return res.status(400).json({ message: "Champs manquants (salleId, start, end)" });
 
     let startDate, endDate;
 
-    if (
-      date &&
-      typeof start === "string" &&
-      typeof end === "string" &&
-      start.includes(":") &&
-      end.includes(":")
-    ) {
+    if (date && start.includes(":") && end.includes(":")) {
       startDate = combineDateAndTime(date, start);
       endDate = combineDateAndTime(date, end);
     } else {
@@ -105,15 +90,9 @@ router.post("/reservations", verifyRole(["secretaire"]), async (req, res) => {
       endDate = new Date(end);
     }
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ message: "Date/heure invalide" });
-    }
-    if (startDate >= endDate) {
-      return res.status(400).json({ message: "Horaire invalide" });
-    }
-    if (startDate < new Date()) {
-      return res.status(400).json({ message: "Impossible de réserver dans le passé" });
-    }
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return res.status(400).json({ message: "Date/heure invalide" });
+    if (startDate >= endDate) return res.status(400).json({ message: "Horaire invalide" });
+    if (startDate < new Date()) return res.status(400).json({ message: "Impossible de réserver dans le passé" });
 
     const conflict = await RoomReservation.findOne({
       salle: salleId,
@@ -122,9 +101,7 @@ router.post("/reservations", verifyRole(["secretaire"]), async (req, res) => {
       end: { $gt: startDate },
     });
 
-    if (conflict) {
-      return res.status(400).json({ message: "Salle déjà réservée à cet horaire" });
-    }
+    if (conflict) return res.status(400).json({ message: "Salle déjà réservée à cet horaire" });
 
     const reservation = await RoomReservation.create({
       salle: salleId,
@@ -155,14 +132,11 @@ router.put("/reservations/:id", verifyRole(["admin", "secretaire"]), async (req,
 
     const existing = await RoomReservation.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Réservation introuvable" });
-
-    if ((existing.status || "").toLowerCase() === "annulée") {
-      return res.status(400).json({ message: "Réservation déjà annulée (modification impossible)" });
-    }
+    if ((existing.status || "").toLowerCase() === "annulée") return res.status(400).json({ message: "Réservation déjà annulée (modification impossible)" });
 
     let startDate, endDate;
 
-    if (date && start && end && String(start).includes(":") && String(end).includes(":")) {
+    if (date && start.includes(":") && end.includes(":")) {
       startDate = combineDateAndTime(date, start);
       endDate = combineDateAndTime(date, end);
     } else {
@@ -170,9 +144,7 @@ router.put("/reservations/:id", verifyRole(["admin", "secretaire"]), async (req,
       endDate = new Date(end);
     }
 
-    if (!salleId || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ message: "Données invalides" });
-    }
+    if (!salleId || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return res.status(400).json({ message: "Données invalides" });
     if (startDate >= endDate) return res.status(400).json({ message: "Horaire invalide" });
 
     const conflict = await RoomReservation.findOne({
@@ -182,9 +154,7 @@ router.put("/reservations/:id", verifyRole(["admin", "secretaire"]), async (req,
       start: { $lt: endDate },
       end: { $gt: startDate },
     });
-    if (conflict) {
-      return res.status(400).json({ message: "Conflit : salle déjà réservée sur ce créneau" });
-    }
+    if (conflict) return res.status(400).json({ message: "Conflit : salle déjà réservée sur ce créneau" });
 
     existing.salle = salleId;
     existing.start = startDate;

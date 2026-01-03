@@ -9,14 +9,22 @@ export default function SelectPatientForConsultation() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const medecin = JSON.parse(localStorage.getItem("medecin")); // ✅ Récupérer le médecin connecté
   const token = localStorage.getItem("authToken");
   const navigate = useNavigate();
 
-  // Charger les patients
+  // Charger les patients du médecin connecté
   useEffect(() => {
+    if (!medecin || !medecin.id) {
+      setError("Médecin non connecté.");
+      setLoading(false);
+      return;
+    }
+
     const fetchPatients = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/patients", {
+        // 🔥 Charger les patients du médecin via la nouvelle route
+        const res = await axios.get(`http://localhost:5000/api/patients/medecin/${medecin.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPatients(res.data);
@@ -29,7 +37,7 @@ export default function SelectPatientForConsultation() {
     };
 
     fetchPatients();
-  }, [token]);
+  }, [token, medecin]);
 
   // Filtrer les patients en fonction de la recherche
   const filteredPatients = patients.filter(patient =>
@@ -42,6 +50,17 @@ export default function SelectPatientForConsultation() {
     navigate(`/medecin/patients/${patientId}/ajouter-consultation`);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <FiLoader className="animate-spin text-blue-600 text-4xl mx-auto" />
+          <p className="mt-4 text-gray-600">Chargement des patients...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -51,17 +70,6 @@ export default function SelectPatientForConsultation() {
             <h2 className="text-lg font-bold text-red-700">Erreur</h2>
           </div>
           <p className="mt-2 text-red-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <FiLoader className="animate-spin text-blue-600 text-4xl mx-auto" />
-          <p className="mt-4 text-gray-600">Chargement des patients...</p>
         </div>
       </div>
     );
@@ -137,7 +145,7 @@ export default function SelectPatientForConsultation() {
                 </div>
                 <button
                   onClick={() => handleSelectPatient(p._id)}
-                  className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                  className="flex items-center bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition"
                 >
                   Sélectionner <FiChevronRight className="ml-2" />
                 </button>

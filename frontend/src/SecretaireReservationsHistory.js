@@ -103,7 +103,7 @@ export default function SecretaireReservationsHistory() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE_URL}/salles/reservations`, { headers: headersAuth });
+      const res = await fetch(`${API_BASE_URL}/api/salles/reservations`, { headers: headersAuth });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Erreur chargement réservations");
       setReservations(Array.isArray(data) ? data : []);
@@ -118,7 +118,7 @@ export default function SecretaireReservationsHistory() {
 
   const fetchRooms = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/salles`, { headers: headersAuth });
+      const res = await fetch(`${API_BASE_URL}/api/salles`, { headers: headersAuth });
       const data = await res.json();
       if (res.ok) setAllRooms(Array.isArray(data) ? data : []);
     } catch {
@@ -171,7 +171,7 @@ export default function SecretaireReservationsHistory() {
     if (!editing) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/salles/reservations/${editing._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/salles/reservations/${editing._id}`, {
         method: "PUT",
         headers: headersJson,
         body: JSON.stringify({
@@ -203,7 +203,7 @@ export default function SecretaireReservationsHistory() {
     if (!window.confirm("Annuler cette réservation ?")) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/salles/reservations/${id}/cancel`, {
+      const res = await fetch(`${API_BASE_URL}/api/salles/reservations/${id}/cancel`, {
         method: "PATCH",
         headers: headersAuth,
       });

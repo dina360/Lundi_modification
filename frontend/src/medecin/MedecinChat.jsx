@@ -87,8 +87,7 @@ export default function MedecinChat() {
     socket.emit('joinRoom', roomId);
 
     const handleNewMessage = (msg) => {
-      console.log(" 🔁 Nouveau message reçu via socket:", msg); // ✅ Log
-      setMessages(prev => [...prev, msg]); // ✅ Ajouter le message à la liste
+      setMessages(prev => [...prev, msg]);
     };
 
     socket.on('newMessage', handleNewMessage);
@@ -96,7 +95,7 @@ export default function MedecinChat() {
     return () => {
       socket.off('newMessage', handleNewMessage);
     };
-  }, [roomId]); // ✅ Important : roomId dans les dépendances
+  }, [roomId]);
 
   // 🔁 Scroll automatique vers le bas
   useEffect(() => {
@@ -138,15 +137,13 @@ export default function MedecinChat() {
       }
 
       const savedMessage = await res.json();
-
-      // ✅ Émettre via Socket.io pour mise à jour en temps réel
       socket.emit('sendMessage', savedMessage);
-
-      setInputValue(""); // ✅ Réinitialiser le champ
     } catch (err) {
       console.error('Erreur envoi message:', err);
       setError("Erreur lors de l'envoi du message.");
     }
+
+    setInputValue("");
   };
 
   const handleKeyDown = (e) => {
@@ -156,19 +153,61 @@ export default function MedecinChat() {
     }
   };
 
+  // 🔥 Fonction pour grouper les messages par date
+  const groupMessagesByDate = (messages) => {
+    const groups = [];
+    let currentGroup = null;
+    let currentDate = null;
+
+    messages.forEach(msg => {
+      const date = new Date(msg.createdAt).toDateString();
+
+      if (date !== currentDate) {
+        currentDate = date;
+        currentGroup = {
+          date: date,
+          messages: [],
+        };
+        groups.push(currentGroup);
+      }
+
+      currentGroup.messages.push(msg);
+    });
+
+    return groups;
+  };
+
+  // 🔥 Fonction pour formater la date
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Aujourd’hui";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Hier";
+    } else {
+      return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+  };
+
+  const groupedMessages = groupMessagesByDate(messages);
+
   return (
     <>
       {/* Bouton flottant pour ouvrir le chat */}
       <button
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-full shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all z-50 flex items-center justify-center w-14 h-14"
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-full shadow-lg hover:from-blue-700 hover:to-indigo-800 transition z-50 flex items-center justify-center"
         onClick={toggleChat}
       >
         <FiUsers size={24} />
       </button>
 
-      {/* Chat Modal */}
+      {/* Chat Modal (positionné en haut à droite, juste au-dessus du bouton) */}
       {isOpen && (
-        <div className="fixed bottom-32 right-6 w-96 h-[450px] bg-white rounded-xl shadow-2xl z-50 flex flex-col border border-gray-200 overflow-hidden">
+        <div className="fixed top-24 right-6 w-96 h-[450px] bg-white rounded-xl shadow-2xl z-50 flex flex-col border border-gray-200 overflow-hidden">
           {/* En-tête */}
           <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-3 flex justify-between items-center">
             <div className="flex items-center space-x-2">
@@ -197,21 +236,28 @@ export default function MedecinChat() {
               <p className="text-gray-500 text-center">Aucun message.</p>
             ) : (
               <ul className="space-y-3">
-                {messages.map((msg) => (
-                  <li
-                    key={msg._id}
-                    className={`p-3 rounded-2xl max-w-[85%] ${
-                      msg.sender._id === medecin.id
-                        ? "bg-blue-100 ml-auto rounded-tr-none"
-                        : "bg-gray-100 mr-auto rounded-tl-none"
-                    }`}
-                  >
-                    <div className="font-semibold text-sm text-gray-700">{msg.sender.name}</div>
-                    <div className="text-gray-800">{msg.text}</div>
-                    <div className="text-xs text-gray-500 text-right mt-1">
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </li>
+                {groupedMessages.map((group, groupIndex) => (
+                  <React.Fragment key={groupIndex}>
+                    <li className="text-center text-xs text-gray-500 my-2">
+                      {formatDate(group.date)}
+                    </li>
+                    {group.messages.map((msg) => (
+                      <li
+                        key={msg._id}
+                        className={`p-3 rounded-2xl max-w-[85%] ${
+                          msg.sender._id === medecin.id
+                            ? "bg-blue-100 ml-auto rounded-tr-none"
+                            : "bg-gray-100 mr-auto rounded-tl-none"
+                        }`}
+                      >
+                        <div className="font-semibold text-sm text-gray-700">{msg.sender.name}</div>
+                        <div className="text-gray-800">{msg.text}</div>
+                        <div className="text-xs text-gray-500 text-right mt-1">
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </li>
+                    ))}
+                  </React.Fragment>
                 ))}
                 <div ref={messagesEndRef} />
               </ul>

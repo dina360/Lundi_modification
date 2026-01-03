@@ -8,7 +8,6 @@ const router = express.Router();
 
 // POST /api/consultations
 router.post("/", authMiddleware, verifyRole(["medecin"]), async (req, res) => {
-  // 🔍 Validation du corps de la requête
   const { patient, medecin, date } = req.body;
 
   if (!patient || !medecin || !date) {
@@ -24,6 +23,37 @@ router.post("/", authMiddleware, verifyRole(["medecin"]), async (req, res) => {
   } catch (error) {
     console.error("Erreur création consultation:", error);
     res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+// 🔹 Charger les consultations d’un patient spécifique
+router.get('/patient/:patientId', authMiddleware, verifyRole(['medecin', 'admin']), async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const consultations = await Consultation.find({ patient: patientId })
+      .populate('medecin', 'name')
+      .sort({ date: -1 }); // Du plus récent au plus ancien
+
+    res.json(consultations);
+  } catch (err) {
+    console.error('Erreur chargement consultations patient:', err);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
+});
+
+// 🔹 Charger toutes les consultations (origin/main)
+router.get("/", authMiddleware, verifyRole(["medecin", "admin"]), async (req, res) => {
+  try {
+    const consultations = await Consultation.find()
+      .populate("patient", "name")
+      .populate("medecin", "name")
+      .sort({ date: -1 });
+
+    res.json(consultations);
+  } catch (err) {
+    console.error("Erreur chargement consultations:", err);
+    res.status(500).json({ message: "Erreur serveur." });
   }
 });
 

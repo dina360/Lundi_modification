@@ -34,7 +34,7 @@ export default function FormulaireRendezVous({ selectedDate, onSuccess }) {
       setLoadingPatients(true);
       setErrorPatients("");
       try {
-        const res = await api.get("/patients");
+        const res = await api.get("/api/patients");
         setPatients(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         console.error(e);
@@ -66,7 +66,7 @@ export default function FormulaireRendezVous({ selectedDate, onSuccess }) {
     setSubmitting(true);
     try {
       // ✅ même payload que SecretaireRendezVous
-      const res = await api.post("/appointments", {
+      const res = await api.post("/api/appointments", {
         patientId,
         date,
         time,

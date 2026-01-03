@@ -87,7 +87,7 @@ export default function SecretaireSalles() {
     setErrorRooms("");
     try {
       const res = await fetch(
-        `${API_BASE_URL}/salles/available?date=${date}&start=${start}&end=${end}`,
+        `${API_BASE_URL}/api/salles/available?date=${date}&start=${start}&end=${end}`,
         { headers: headersAuth }
       );
 

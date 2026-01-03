@@ -31,7 +31,7 @@ export default function ListeRendezVous({ refresh }) {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get(`/appointments/day?date=${d}`);
+      const res = await api.get(`/api/appointments/day?date=${d}`);
       setRows(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);

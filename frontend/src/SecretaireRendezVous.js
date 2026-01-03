@@ -88,7 +88,7 @@ export default function SecretaireRendezVous() {
       setLoadingPatients(true);
       setErrorPatients("");
       try {
-        const res = await fetch(`${API_BASE_URL}/patients`, {
+        const res = await fetch(`${API_BASE_URL}/api/patients`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -117,7 +117,7 @@ export default function SecretaireRendezVous() {
     setErrorRdv("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/appointments?from=${from}&to=${to}`, {
+      const res = await fetch(`${API_BASE_URL}/api/appointments?from=${from}&to=${to}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -167,7 +167,7 @@ export default function SecretaireRendezVous() {
     setPlanningLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/appointments/day?date=${dateStr}`, {
+      const res = await fetch(`${API_BASE_URL}/api/appointments/day?date=${dateStr}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -249,7 +249,7 @@ export default function SecretaireRendezVous() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/appointments`, {
+      const res = await fetch(`${API_BASE_URL}/api/appointments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -298,7 +298,7 @@ export default function SecretaireRendezVous() {
 
   const saveEdit = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/appointments/${editingId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/appointments/${editingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -333,7 +333,7 @@ export default function SecretaireRendezVous() {
     if (!window.confirm("Supprimer ce rendez-vous ?")) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/appointments/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/appointments/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

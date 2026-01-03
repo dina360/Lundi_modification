@@ -60,8 +60,6 @@ const roomSchema = new mongoose.Schema(
       default: "disponible", // disponible, occupée, maintenance, hors_service...
       trim: true,
     },
-
-    // ✅ on garde ton champ "equipments" tel quel
     equipments: [equipmentSchema],
   },
   {
@@ -70,7 +68,7 @@ const roomSchema = new mongoose.Schema(
 );
 
 /**
- * ✅ IMPORTANT (2 corrections):
+ * ✅ IMPORTANT :
  * 1) Empêche "OverwriteModelError" si le modèle Room est déjà compilé
  * 2) Force la collection MongoDB à être exactement "rooms"
  */

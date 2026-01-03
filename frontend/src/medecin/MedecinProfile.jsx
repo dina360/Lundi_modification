@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FiUser, FiCamera, FiSave, FiMail, FiPhone, FiMapPin, FiClock, FiX, FiCheck } from "react-icons/fi";
-import ToastNotification from "../ToastNotification"; 
+import ToastNotification from "../ToastNotification";
 
 export default function MedecinProfile() {
   const [medecin, setMedecin] = useState(null);
@@ -14,7 +14,7 @@ export default function MedecinProfile() {
     name: "",
     specialty: "",
     phone: "",
-    address: "",
+    status: "", // ✅ Changé de "address" à "status"
   });
 
   // 🔹 État pour le toast
@@ -58,7 +58,7 @@ export default function MedecinProfile() {
         name: userData.name || "",
         specialty: userData.specialty || "",
         phone: userData.phone || "",
-        address: userData.address || "",
+        status: userData.status || "", // ✅ Changé de "address" à "status"
       });
     } else {
       setError("Médecin non connecté. Reconnectez-vous.");
@@ -66,6 +66,21 @@ export default function MedecinProfile() {
 
     setLoading(false);
   }, []);
+
+  // 🔹 Recharger les données quand le statut ou le téléphone change
+  useEffect(() => {
+    const medecinStr = localStorage.getItem("medecin");
+    if (medecinStr) {
+      const userData = JSON.parse(medecinStr);
+      setMedecin(userData);
+      setEditForm({
+        name: userData.name || "",
+        specialty: userData.specialty || "",
+        phone: userData.phone || "",
+        status: userData.status || "", // ✅ Changé de "address" à "status"
+      });
+    }
+  }, [medecin?.phone, medecin?.status]); // ✅ Changé de "address" à "status"
 
   // 🔁 Charger les RDV du jour
   useEffect(() => {
@@ -137,13 +152,38 @@ export default function MedecinProfile() {
   const handleSaveProfile = async () => {
     if (!medecin || !medecin.id) return;
 
+    const token = localStorage.getItem("authToken");
+
     try {
-      // Remplace par une route backend si elle existe, sinon afficher un message
-      showToast("✅ Profil mis à jour dans localStorage (route backend manquante)", "success");
-      const updatedMedecin = { ...medecin, ...editForm };
+      // 🔥 Appeler la route backend pour mettre à jour le profil
+      const res = await axios.put(
+        `http://localhost:5000/api/medecins/profil/${medecin.id}`,
+        editForm,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      showToast("✅ Profil mis à jour avec succès.", "success");
+
+      // 🔥 Recharger les données du médecin depuis le backend
+      const updatedMedecinRes = await axios.get("http://localhost:5000/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updatedMedecin = updatedMedecinRes.data;
+
+      // 🔥 Mettre à jour dans le localStorage
       localStorage.setItem("medecin", JSON.stringify(updatedMedecin));
       setMedecin(updatedMedecin);
+      setEditForm({
+        name: updatedMedecin.name || "",
+        specialty: updatedMedecin.specialty || "",
+        phone: updatedMedecin.phone || "",
+        status: updatedMedecin.status || "", // ✅ Changé de "address" à "status"
+      });
     } catch (error) {
+      console.error("Erreur mise à jour profil:", error);
       showToast("❌ Erreur lors de la mise à jour du profil.", "error");
     }
   };
@@ -267,14 +307,19 @@ export default function MedecinProfile() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-gray-700 mb-2 flex items-center">
-                    <FiMapPin className="mr-2 text-gray-500" /> Adresse
+                    <FiMapPin className="mr-2 text-gray-500" /> Statut {/* ✅ Changé de "Adresse" à "Statut" */}
                   </label>
-                  <input
-                    type="text"
-                    value={editForm.address}
-                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  <select
+                    value={editForm.status} // ✅ Changé de "address" à "status"
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} // ✅ Changé de "address" à "status"
                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                  >
+                    <option value="">Sélectionner un statut</option>
+                    <option value="Disponible">Disponible</option>
+                    <option value="Occupé">Occupé</option>
+                    <option value="Absent">Absent</option>
+                    <option value="En congé">En congé</option>
+                  </select>
                 </div>
               </div>
               <button
@@ -310,7 +355,6 @@ export default function MedecinProfile() {
             </div>
           </div>
         </div>
-
         {/* ✅ Zone pour afficher le toast */}
         {toast && (
           <ToastNotification

@@ -1,9 +1,10 @@
 {
   "name": "frontend",
+  "proxy": "http://localhost:5000",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@craco/craco": "^5.9.0",
+    "@craco/craco": "^7.1.0",
     "@fullcalendar/core": "^6.1.19",
     "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/interaction": "^6.1.19",
@@ -23,6 +24,7 @@
     "react-icons": "^5.5.0",
     "react-is": "^19.2.1",
     "react-router-dom": "^7.11.0",
+    "react-scripts": "5.0.1",
     "recharts": "^3.5.1",
     "socket.io-client": "^4.8.1",
     "web-vitals": "^4.2.4"

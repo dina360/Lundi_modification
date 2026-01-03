@@ -9,7 +9,7 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ✅ OPTIONNEL pour ton interface Secrétaire (pas de sélection médecin)
+    // Médecin optionnel pour certains cas (ex: interface secrétaire)
     medecin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -25,13 +25,18 @@ const appointmentSchema = new mongoose.Schema(
 
     duration: {
       type: Number,
-      default: 30,
+      default: 30, // minutes
     },
 
     motif: {
       type: String,
       default: "",
       trim: true,
+    },
+
+    notes: {
+      type: String,
+      default: "",
     },
 
     status: {

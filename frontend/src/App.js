@@ -24,6 +24,7 @@ import MedecinPatientsList from "./medecin/MedecinPatientsList";
 import AddConsultation from "./medecin/AddConsultation";
 import SelectPatientForConsultation from "./medecin/SelectPatientForConsultation";
 import MedecinDisponibilites from "./medecin/MedecinDisponibilites";
+import MedecinPatientDossier from "./medecin/MedecinPatientDossier";
 
 // Gestion Médecins (Admin)
 import DoctorsList from "./doctors/DoctorsList";
@@ -32,10 +33,11 @@ import AddDoctor from "./doctors/AddDoctor";
 import EditDoctor from "./doctors/EditDoctor";
 
 import SallesBlocs from "./SallesBlocs";
+
 import ProtectedRoute from "./ProtectedRoute";
 import "./App.css";
 
-// Espace Malade
+// Espace Malade / Patient
 import MaladeHome from "./malade/MaladeHome";
 import MaladeDemandeRdv from "./malade/MaladeDemandeRdv";
 import MaladeHistoriqueRdv from "./malade/MaladeHistoriqueRdv";
@@ -48,6 +50,33 @@ import SecretairePatientsList from "./secretaire/SecretairePatientsList";
 import SecretaireSalles from "./SecretaireSalles";
 import SecretaireReservationsHistory from "./SecretaireReservationsHistory";
 
+/* ============================
+   Espaces rôles simples (HEAD)
+   ============================ */
+const PatientHome = () => (
+  <div style={{ padding: "2rem" }}>
+    <h1>Espace Patient</h1>
+    <p>Bienvenue sur votre espace patient.</p>
+  </div>
+);
+
+const MedecinHome = () => (
+  <div style={{ padding: "2rem" }}>
+    <h1>Espace Médecin</h1>
+    <p>Tableau de bord médecin.</p>
+  </div>
+);
+
+const SecretaireHomeFallback = () => (
+  <div style={{ padding: "2rem" }}>
+    <h1>Espace Secrétaire</h1>
+    <p>Gestion des rendez-vous & dossiers.</p>
+  </div>
+);
+
+/* ============================
+   App Component
+   ============================ */
 function App() {
   // ============================
   // Socket.io (connexion globale)
@@ -87,7 +116,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/patients"
           element={
@@ -96,8 +124,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ✅ ROUTE OFFICIELLE DOSSIER PATIENT */}
         <Route
           path="/patients/:patientId/dossier"
           element={
@@ -106,8 +132,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ✅ ALIAS (pour compatibilité avec ancien lien) */}
         <Route
           path="/dossier-patient/:patientId"
           element={
@@ -116,12 +140,51 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/personnel"
           element={
             <ProtectedRoute roles={["admin"]}>
               <StaffPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <DoctorsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs/ajouter"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AddDoctor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs/:id"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <DoctorDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docteurs/:id/edit"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <EditDoctor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/salles"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <SallesBlocs />
             </ProtectedRoute>
           }
         />
@@ -132,119 +195,6 @@ function App() {
           element={
             <ProtectedRoute roles={["admin", "medecin", "secretaire"]}>
               <RendezVousPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ================= MEDECINS (ADMIN) ================= */}
-        <Route
-          path="/docteurs"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <DoctorsList />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/docteurs/ajouter"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <AddDoctor />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/docteurs/:id"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <DoctorDetail />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/docteurs/:id/edit"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <EditDoctor />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ================= SALLES ================= */}
-        <Route
-          path="/salles"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <SallesBlocs />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ================= MALADE (PATIENT) ================= */}
-        <Route
-          path="/malade/home"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <MaladeHome />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/malade/rendezvous/demande"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <MaladeDemandeRdv />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/malade/rendezvous/modifier/:rdvId"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <MaladeHistoriqueRdv />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/malade/rendezvous/historique"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <MaladeHistoriqueRdv />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/malade/profile"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <MaladeProfile />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ================= IA PREDICTION (PATIENT) ================= */}
-        <Route
-          path="/malade/prediction"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <PredictionPatient />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Compat si ancien bouton utilise /patient/prediction */}
-        <Route
-          path="/patient/prediction"
-          element={
-            <ProtectedRoute roles={["patient"]}>
-              <PredictionPatient />
             </ProtectedRoute>
           }
         />
@@ -262,12 +212,68 @@ function App() {
           <Route path="profile" element={<MedecinProfile />} />
           <Route path="patients" element={<MedecinPatientsList />} />
           <Route path="PatientDetails" element={<SelectPatientForConsultation />} />
-          <Route
-            path="patients/:patientId/ajouter-consultation"
-            element={<AddConsultation />}
-          />
+          <Route path="patients/:patientId/ajouter-consultation" element={<AddConsultation />} />
           <Route path="dispoMedecin" element={<MedecinDisponibilites />} />
+          <Route path="patients/:id/dossier" element={<MedecinPatientDossier />} />
         </Route>
+
+        {/* ================= MALADE / PATIENT ================= */}
+        <Route
+          path="/malade/home"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/rendezvous/demande"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeDemandeRdv />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/rendezvous/modifier/:rdvId"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/rendezvous/historique"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeHistoriqueRdv />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/profile"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <MaladeProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/malade/prediction"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <PredictionPatient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patient/prediction"
+          element={
+            <ProtectedRoute roles={["patient"]}>
+              <PredictionPatient />
+            </ProtectedRoute>
+          }
+        />
 
         {/* ================= SECRETAIRE ================= */}
         <Route
@@ -278,7 +284,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/secretaire/rendezvous"
           element={
@@ -287,7 +292,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/secretaire/patients"
           element={
@@ -296,8 +300,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* (à protéger si besoin) */}
         <Route path="/secretaire/salles" element={<SecretaireSalles />} />
         <Route
           path="/secretaire/salles/historique"

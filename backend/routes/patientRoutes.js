@@ -4,6 +4,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const Patient = require("../models/patientModel");
+const Appointment = require("../models/Appointment");
 
 const router = express.Router();
 
@@ -21,15 +22,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// =====================
 // Helpers
+// =====================
 function norm(v) {
   return typeof v === "string" ? v.trim() : v;
 }
 function parseDateOrNull(v) {
   if (!v) return null;
-  const d = new Date(v); // "YYYY-MM-DD" OK
-  if (isNaN(d.getTime())) return null;
-  return d;
+  const d = new Date(v); // "YYYY-MM-DD"
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // =====================
@@ -39,39 +41,19 @@ function parseDateOrNull(v) {
 // POST /api/patients
 router.post("/", upload.single("photo"), async (req, res) => {
   try {
-    const {
-      name,
-      dossier,
-      phone,
-      email,
-      address,
-      birthDate,
-      bloodGroup,
-      allergies,
-      medicalHistory,
-      notes,
-      status,
-    } = req.body;
+    const { name, dossier, phone, email, address, birthDate, bloodGroup, allergies, medicalHistory, notes, status } = req.body;
 
-    // requis (selon modèle)
     if (!name || !dossier || !phone || !address) {
-      return res.status(400).json({
-        message: "Champs obligatoires: name, dossier, phone, address.",
-      });
+      return res.status(400).json({ message: "Champs obligatoires: name, dossier, phone, address." });
     }
 
     const dossierTrim = String(dossier).trim();
     const exists = await Patient.findOne({ dossier: dossierTrim });
-    if (exists) {
-      return res.status(409).json({ message: "Numéro de dossier déjà utilisé." });
-    }
+    if (exists) return res.status(409).json({ message: "Numéro de dossier déjà utilisé." });
 
     const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
-
     const bd = birthDate ? parseDateOrNull(birthDate) : null;
-    if (birthDate && !bd) {
-      return res.status(400).json({ message: "Date de naissance invalide." });
-    }
+    if (birthDate && !bd) return res.status(400).json({ message: "Date de naissance invalide." });
 
     const patient = await Patient.create({
       name: norm(name),
@@ -80,12 +62,10 @@ router.post("/", upload.single("photo"), async (req, res) => {
       address: norm(address),
       email: email ? norm(email).toLowerCase() : "",
       birthDate: bd,
-
       bloodGroup: bloodGroup ? norm(bloodGroup) : "",
       allergies: allergies ? norm(allergies) : "",
       medicalHistory: medicalHistory ? norm(medicalHistory) : "",
       notes: notes ? norm(notes) : "",
-
       status: status || "active",
       photo: photoPath,
       medicalRecords: [],
@@ -94,9 +74,7 @@ router.post("/", upload.single("photo"), async (req, res) => {
     return res.status(201).json(patient);
   } catch (error) {
     console.error("POST /api/patients error:", error);
-    if (error?.code === 11000) {
-      return res.status(409).json({ message: "Numéro de dossier déjà utilisé." });
-    }
+    if (error?.code === 11000) return res.status(409).json({ message: "Numéro de dossier déjà utilisé." });
     return res.status(500).json({ message: error.message || "Erreur serveur." });
   }
 });
@@ -130,7 +108,6 @@ router.put("/:_id", upload.single("photo"), async (req, res) => {
     const id = req.params._id;
     const update = { ...req.body };
 
-    // normalisation champs texte
     if (update.name !== undefined) update.name = norm(update.name);
     if (update.phone !== undefined) update.phone = norm(update.phone);
     if (update.address !== undefined) update.address = norm(update.address);
@@ -153,18 +130,12 @@ router.put("/:_id", upload.single("photo"), async (req, res) => {
 
     if (req.file) update.photo = `/uploads/${req.file.filename}`;
 
-    const updated = await Patient.findByIdAndUpdate(id, update, {
-      new: true,
-      runValidators: true,
-    });
-
+    const updated = await Patient.findByIdAndUpdate(id, update, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ message: "Patient non trouvé." });
     return res.json(updated);
   } catch (error) {
     console.error("PUT /api/patients/:id error:", error);
-    if (error?.code === 11000) {
-      return res.status(409).json({ message: "Numéro de dossier déjà utilisé." });
-    }
+    if (error?.code === 11000) return res.status(409).json({ message: "Numéro de dossier déjà utilisé." });
     return res.status(500).json({ message: error.message || "Erreur serveur." });
   }
 });
@@ -190,7 +161,6 @@ router.post("/:_id/dossier", upload.single("document"), async (req, res) => {
   try {
     const patient = await Patient.findById(req.params._id);
     if (!patient) return res.status(404).json({ message: "Patient non trouvé." });
-
     if (!req.file) return res.status(400).json({ message: "Aucun document reçu." });
 
     const baseUrl =
@@ -198,11 +168,7 @@ router.post("/:_id/dossier", upload.single("document"), async (req, res) => {
         ? process.env.BASE_URL || "https://votre-domaine.com"
         : "http://localhost:5000";
 
-    const newDoc = {
-      url: `${baseUrl}/uploads/${req.file.filename}`,
-      name: req.file.originalname,
-    };
-
+    const newDoc = { url: `${baseUrl}/uploads/${req.file.filename}`, name: req.file.originalname };
     patient.medicalRecords.push(newDoc);
     await patient.save();
 
@@ -232,6 +198,35 @@ router.delete("/:_id/dossier", async (req, res) => {
     return res.json({ message: "Document supprimé.", medicalRecords: patient.medicalRecords });
   } catch (error) {
     console.error("DELETE /api/patients/:id/dossier error:", error);
+    return res.status(500).json({ message: error.message || "Erreur serveur." });
+  }
+});
+
+// 🔹 Charger les patients d’un médecin spécifique via ses RDV
+router.get("/medecin/:medecinId", async (req, res) => {
+  try {
+    const { medecinId } = req.params;
+
+    const rdv = await Appointment.find({ medecin: medecinId }).distinct("patient");
+    const patients = await Patient.find({ _id: { $in: rdv } });
+
+    return res.json(patients);
+  } catch (error) {
+    console.error("GET /api/patients/medecin/:id error:", error);
+    return res.status(500).json({ message: error.message || "Erreur serveur." });
+  }
+});
+// 🔹 Charger les patients d’un médecin spécifique via ses RDV
+router.get("/medecin/:medecinId", async (req, res) => {
+  try {
+    const { medecinId } = req.params;
+
+    const rdv = await Appointment.find({ medecin: medecinId }).distinct("patient");
+    const patients = await Patient.find({ _id: { $in: rdv } });
+
+    return res.json(patients);
+  } catch (error) {
+    console.error("GET /api/patients/medecin/:id error:", error);
     return res.status(500).json({ message: error.message || "Erreur serveur." });
   }
 });
